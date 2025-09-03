@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 Quintype SEO Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .milk-button {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #1f2937;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .milk-button:hover {
+            background: linear-gradient(135deg, #fde68a, #fcd34d);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .ai-glow {
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <div class="flex items-center justify-center mb-4">
+                <svg class="w-12 h-12 mr-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+                </svg>
+                <h1 class="text-5xl font-bold bg-gradient-to-r from-blue-400 to-white bg-clip-text text-transparent">
+                    🤖 SEO Analyzer
+                </h1>
+            </div>
+            <p class="text-blue-200 text-xl">Reliable AI-powered SEO analysis</p>
+        </header>
+
+        <!-- Analysis Section -->
+        <section class="glass p-8 rounded-2xl shadow-2xl mb-6 ai-glow">
+            <div class="text-center mb-6">
+                <h2 class="text-4xl font-bold text-white mb-2">🚀 AI-Powered Analysis</h2>
+                <p class="text-blue-200 text-lg">Enter any website URL to get comprehensive SEO insights</p>
+            </div>
+            
+            <div class="flex gap-4 mb-6">
+                <input 
+                    type="url" 
+                    id="urlInput" 
+                    placeholder="https://example.com" 
+                    value="https://www.esakal.com/"
+                    class="flex-1 px-6 py-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                <button 
+                    id="analyzeBtn"
+                    onclick="analyze()" 
+                    class="milk-button px-8 py-4 rounded-xl font-bold text-lg flex items-center gap-2"
+                >
+                    <span>🤖</span> AI Analyze
+                </button>
+            </div>
+            
+            <div id="msg" class="text-center text-green-400 font-semibold mb-4"></div>
+        </section>
+
+        <!-- Results Section -->
+        <div id="result" class="hidden">
+            <!-- Results will be populated here -->
+        </div>
+    </div>
+
+    <script>
+        let isAnalyzing = false;
+
+        async function analyze() {
+            if (isAnalyzing) return;
+            
+            const url = document.getElementById('urlInput').value.trim();
+            const msg = document.getElementById('msg');
+            const result = document.getElementById('result');
+            const btn = document.getElementById('analyzeBtn');
+            
+            if (!url) {
+                msg.textContent = 'Please enter a URL';
+                return;
+            }
+            
+            isAnalyzing = true;
+            msg.textContent = '🤖 AI is analyzing your website... This may take 15-30 seconds';
+            btn.disabled = true;
+            btn.textContent = '🔄 Analyzing...';
+            
+            try {
+                console.log('Starting analysis for:', url);
+                
+                const response = await fetch('http://localhost:3000/analyze', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Analysis completed:', data);
+                
+                msg.textContent = `✅ Analysis complete! Found ${data.seo.issues.length} SEO issues.`;
+                displayResults(data);
+                
+            } catch (error) {
+                console.error('Analysis failed:', error);
+                msg.textContent = `❌ Analysis failed: ${error.message}`;
+            } finally {
+                isAnalyzing = false;
+                btn.disabled = false;
+                btn.innerHTML = '<span>🤖</span> AI Analyze';
+            }
+        }
+
+        // Global variable to store analysis data
+        let currentAnalysisData = null;
+
+        // Store analysis data when results are displayed
+        function displayResults(data) {
+            currentAnalysisData = data; // Store for detailed views
+            const result = document.getElementById('result');
+            result.className = 'block';
+            
+            // Calculate overall score
+            const overallScore = Math.round((data.seo.score + data.performance.overallScore + data.crawl.score) / 3);
+            
+            result.innerHTML = `
+                <!-- Overall Score -->
+                <div class="text-center mb-8">
+                    <div class="text-6xl font-bold text-white mb-2">${overallScore}%</div>
+                    <div class="text-blue-200 text-xl">Overall SEO Score</div>
+                </div>
+
+                <!-- Score Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- SEO Score Card -->
+                    <div class="glass p-6 rounded-2xl text-center cursor-pointer hover:scale-105 transition-transform" onclick="toggleSEODetails()">
+                        <div class="text-4xl font-bold text-white mb-2">${data.seo.score}%</div>
+                        <div class="text-blue-200 mb-3">SEO Score</div>
+                        <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                            <div class="bg-blue-500 h-2 rounded-full" style="width: ${data.seo.score}%"></div>
+                        </div>
+                        <div class="text-blue-300 text-sm">Click for detailed breakdown</div>
+                    </div>
+
+                    <!-- Performance Score Card -->
+                    <div class="glass p-6 rounded-2xl text-center cursor-pointer hover:scale-105 transition-transform" onclick="togglePerformanceDetails()">
+                        <div class="text-4xl font-bold text-white mb-2">${data.performance.overallScore}%</div>
+                        <div class="text-blue-200 mb-3">Performance</div>
+                        <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: ${data.performance.overallScore}%"></div>
+                        </div>
+                        <div class="text-blue-300 text-sm">Click for Core Web Vitals</div>
+                    </div>
+
+                    <!-- Crawlability Score Card -->
+                    <div class="glass p-6 rounded-2xl text-center cursor-pointer hover:scale-105 transition-transform" onclick="toggleCrawlabilityDetails()">
+                        <div class="text-4xl font-bold text-white mb-2">${data.crawl.score}%</div>
+                        <div class="text-blue-200 mb-3">Crawlability</div>
+                        <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                            <div class="bg-purple-500 h-2 rounded-full" style="width: ${data.crawl.score}%"></div>
+                        </div>
+                        <div class="text-blue-300 text-sm">Click for crawlability report</div>
+                    </div>
+                </div>
+
+                <!-- SEO Analysis Section (Initially Hidden) -->
+                <div id="seoDetails" class="hidden mb-8">
+                    <div class="glass p-8 rounded-2xl">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-3xl font-bold text-white flex items-center gap-2">
+                                🔍 SEO Analysis
+                            </h3>
+                            <button onclick="downloadSEOReport()" class="milk-button px-4 py-2 rounded-lg font-semibold text-sm">
+                                📥 Download Report
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            ${data.seo.issues.map((issue, index) => `
+                                <div class="bg-white/5 p-6 rounded-xl border border-white/10">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-3 mb-2">
+                                                <span class="px-3 py-1 rounded-full text-sm font-semibold ${getSeverityLevel(issue.severity).class}">
+                                                    ${getSeverityLevel(issue.severity).icon} ${getSeverityLevel(issue.severity).label}
+                                                </span>
+                                                <span class="px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-300">${getSEOCategory(issue.key)}</span>
+                                            </div>
+                                            <h4 class="text-xl font-bold text-white mb-2">${issue.message}</h4>
+                                            <p class="text-blue-200 mb-3">${issue.explanation}</p>
+                                            <div class="bg-white/5 p-3 rounded-lg mb-3">
+                                                <p class="text-sm text-blue-300 mb-1"><strong>Fix:</strong> ${issue.fix}</p>
+                                            </div>
+                                        </div>
+                                        <button onclick="openSolutionPage('seo', '${issue.key}', ${index})" 
+                                                class="milk-button px-4 py-2 rounded-lg font-semibold text-sm">
+                                            AI Fix
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Analysis Section (Initially Hidden) -->
+                <div id="performanceDetails" class="hidden mb-8">
+                    <div class="glass p-8 rounded-2xl">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-3xl font-bold text-white flex items-center gap-2">
+                                ⚡ Performance Analysis
+                            </h3>
+                            <button onclick="downloadPerformanceReport()" class="milk-button px-4 py-2 rounded-lg font-semibold text-sm">
+                                📥 Download Report
+                            </button>
+                        </div>
+                        
+                        <!-- Core Web Vitals -->
+                        <div class="mb-8">
+                            <h4 class="text-2xl font-bold text-white mb-4">🎯 Core Web Vitals</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                ${generateCoreWebVitalsCard('LCP', data.performance.lcp, 'Largest Contentful Paint', data.performance.coreWebVitals?.lcp)}
+                                ${generateCoreWebVitalsCard('CLS', data.performance.cls, 'Cumulative Layout Shift', data.performance.coreWebVitals?.cls)}
+                                ${generateCoreWebVitalsCard('FCP', data.performance.fcp, 'First Contentful Paint', data.performance.coreWebVitals?.fcp)}
+                            </div>
+                        </div>
+
+                        <!-- Performance Issues -->
+                        <div class="mb-8">
+                            <h4 class="text-2xl font-bold text-white mb-4">🚨 Performance Issues</h4>
+                            <div class="space-y-4">
+                                ${data.performance.issues && data.performance.issues.length > 0 ? 
+                                    data.performance.issues.map(issue => generatePerformanceIssueCard(issue)).join('') :
+                                    '<div class="bg-green-500/20 p-4 rounded-xl border border-green-500/30"><p class="text-green-300">✅ No performance issues detected!</p></div>'
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Optimization Opportunities -->
+                        <div class="mb-8">
+                            <h4 class="text-2xl font-bold text-white mb-4">💡 Optimization Opportunities</h4>
+                            <div class="space-y-4">
+                                ${generateOptimizationOpportunities(data.performance)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Crawlability Analysis Section (Initially Hidden) -->
+                <div id="crawlabilityDetails" class="hidden mb-8">
+                    <div class="glass p-8 rounded-2xl">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-3xl font-bold text-white flex items-center gap-2">
+                                🕷️ Crawlability Analysis
+                            </h3>
+                            <button onclick="downloadCrawlabilityReport()" class="milk-button px-4 py-2 rounded-lg font-semibold text-sm">
+                                📥 Download Report
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            ${data.crawl.details.map((detail, index) => `
+                                <div class="bg-white/5 p-6 rounded-xl border border-white/10">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-3 mb-2">
+                                                <span class="px-3 py-1 rounded-full text-sm font-semibold ${detail.ok ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'}">
+                                                    ${detail.ok ? '🟢 PASS' : '🟠 ISSUE'}
+                                                </span>
+                                                <span class="px-2 py-1 rounded text-xs bg-purple-500/20 text-purple-300">${getCrawlabilityCategory(detail.key)}</span>
+                                            </div>
+                                            <h4 class="text-xl font-bold text-white mb-2">${detail.message}</h4>
+                                            <p class="text-blue-200 mb-3">${detail.impact}</p>
+                                            <div class="bg-white/5 p-3 rounded-lg mb-3">
+                                                <p class="text-sm text-blue-300 mb-1"><strong>Fix:</strong> ${detail.fix}</p>
+                                            </div>
+                                        </div>
+                                        <button onclick="openSolutionPage('crawlability', '${detail.key}', ${index})" 
+                                                class="milk-button px-4 py-2 rounded-lg font-semibold text-sm">
+                                            AI Fix
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Toggle functions for score card details
+        function toggleSEODetails() {
+            const seoDetails = document.getElementById('seoDetails');
+            const performanceDetails = document.getElementById('performanceDetails');
+            const crawlabilityDetails = document.getElementById('crawlabilityDetails');
+            
+            // Hide other sections
+            performanceDetails.classList.add('hidden');
+            crawlabilityDetails.classList.add('hidden');
+            
+            // Toggle SEO details
+            if (seoDetails.classList.contains('hidden')) {
+                seoDetails.classList.remove('hidden');
+                seoDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                seoDetails.classList.add('hidden');
+            }
+        }
+
+        function togglePerformanceDetails() {
+            const seoDetails = document.getElementById('seoDetails');
+            const performanceDetails = document.getElementById('performanceDetails');
+            const crawlabilityDetails = document.getElementById('crawlabilityDetails');
+            
+            // Hide other sections
+            seoDetails.classList.add('hidden');
+            crawlabilityDetails.classList.add('hidden');
+            
+            // Toggle Performance details
+            if (performanceDetails.classList.contains('hidden')) {
+                performanceDetails.classList.remove('hidden');
+                performanceDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                performanceDetails.classList.add('hidden');
+            }
+        }
+
+        function toggleCrawlabilityDetails() {
+            const seoDetails = document.getElementById('seoDetails');
+            const performanceDetails = document.getElementById('performanceDetails');
+            const crawlabilityDetails = document.getElementById('crawlabilityDetails');
+            
+            // Hide other sections
+            seoDetails.classList.add('hidden');
+            performanceDetails.classList.add('hidden');
+            
+            // Toggle Crawlability details
+            if (crawlabilityDetails.classList.contains('hidden')) {
+                crawlabilityDetails.classList.remove('hidden');
+                crawlabilityDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                crawlabilityDetails.classList.add('hidden');
+            }
+        }
+
+        // Download report functions
+        function downloadSEOReport() {
+            if (!currentAnalysisData) return;
+            
+            const data = currentAnalysisData;
+            const report = {
+                url: data.url,
+                timestamp: data.timestamp,
+                seo: {
+                    score: data.seo.score,
+                    issues: data.seo.issues,
+                    analysis: data.seo.analysis
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `seo-report-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadPerformanceReport() {
+            if (!currentAnalysisData) return;
+            
+            const data = currentAnalysisData;
+            const report = {
+                url: data.url,
+                timestamp: data.timestamp,
+                performance: {
+                    overallScore: data.performance.overallScore,
+                    lcp: data.performance.lcp,
+                    cls: data.performance.cls,
+                    fcp: data.performance.fcp,
+                    tti: data.performance.tti,
+                    tbt: data.performance.tbt,
+                    speedIndex: data.performance.speedIndex,
+                    coreWebVitals: data.performance.coreWebVitals,
+                    issues: data.performance.issues
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `performance-report-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadCrawlabilityReport() {
+            if (!currentAnalysisData) return;
+            
+            const data = currentAnalysisData;
+            const report = {
+                url: data.url,
+                timestamp: data.timestamp,
+                crawl: {
+                    score: data.crawl.score,
+                    details: data.crawl.details
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `crawlability-report-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+
+
+        function generateCoreWebVitalsCard(metric, value, description, status) {
+            const statusColors = {
+                'good': 'bg-green-500',
+                'needs-improvement': 'bg-yellow-500', 
+                'poor': 'bg-red-500'
+            };
+            const statusIcons = {
+                'good': '✅',
+                'needs-improvement': '⚠️',
+                'poor': '❌'
+            };
+            const statusText = {
+                'good': 'Good',
+                'needs-improvement': 'Needs Improvement',
+                'poor': 'Poor'
+            };
+            
+            const color = statusColors[status] || 'bg-gray-500';
+            const icon = statusIcons[status] || '❓';
+            const text = statusText[status] || 'Unknown';
+            
+            return `
+                <div class="bg-white/5 p-6 rounded-xl border border-white/10">
+                    <div class="flex items-center justify-between mb-3">
+                        <h5 class="text-lg font-semibold text-white">${metric}</h5>
+                        <span class="px-3 py-1 rounded-full text-sm font-semibold ${color} text-white">
+                            ${icon} ${text}
+                        </span>
+                    </div>
+                    <div class="text-3xl font-bold text-white mb-2">${typeof value === 'number' ? value.toLocaleString() : value}</div>
+                    <p class="text-blue-200 text-sm">${description}</p>
+                    ${getCoreWebVitalsThreshold(metric, value)}
+                </div>
+            `;
+        }
+
+        function generateMetricCard(metric, value, description, unit) {
+            return `
+                <div class="bg-white/5 p-4 rounded-xl border border-white/10">
+                    <h5 class="text-lg font-semibold text-white mb-2">${metric}</h5>
+                    <div class="text-2xl font-bold text-white mb-2">${typeof value === 'number' ? value.toLocaleString() : value}${unit}</div>
+                    <p class="text-blue-200 text-sm">${description}</p>
+                </div>
+            `;
+        }
+
+        function generatePerformanceIssueCard(issue) {
+            const severityColors = {
+                'critical': 'bg-red-500',
+                'warning': 'bg-yellow-500',
+                'info': 'bg-blue-500'
+            };
+            const severityIcons = {
+                'critical': '🔴',
+                'warning': '🟠',
+                'info': '🔵'
+            };
+            
+            const color = severityColors[issue.severity] || 'bg-gray-500';
+            const icon = severityIcons[issue.severity] || '❓';
+            
+            return `
+                <div class="bg-white/5 p-6 rounded-xl border border-white/10">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-3">
+                                <span class="px-3 py-1 rounded-full text-sm font-semibold ${color} text-white">
+                                    ${icon} ${issue.severity.toUpperCase()}
+                                </span>
+                                <span class="px-2 py-1 rounded text-xs bg-orange-500/20 text-orange-300">${issue.key.toUpperCase()}</span>
+                            </div>
+                            <h5 class="text-xl font-bold text-white mb-2">${issue.message}</h5>
+                            <p class="text-blue-200 mb-3">${issue.explanation}</p>
+                            <div class="bg-white/5 p-3 rounded-lg mb-3">
+                                <p class="text-sm text-blue-300 mb-1"><strong>Fix:</strong> ${issue.fix}</p>
+                            </div>
+                            <div class="bg-red-500/10 p-3 rounded-lg mb-3">
+                                <p class="text-sm text-red-300"><strong>Impact:</strong> ${issue.impact}</p>
+                            </div>
+                        </div>
+                        <button onclick="openSolutionPage('performance', '${issue.key}', 0)" 
+                                class="milk-button px-4 py-2 rounded-lg font-semibold text-sm">
+                            AI Fix
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateOptimizationOpportunities(performance) {
+            const opportunities = [];
+            
+            // LCP Opportunities
+            if (performance.lcp > 2500) {
+                opportunities.push({
+                    title: 'Optimize Largest Contentful Paint',
+                    description: 'Reduce LCP by optimizing images and server response time',
+                    impact: 'Can improve LCP by 2-4 seconds',
+                    category: 'Loading Performance'
+                });
+            }
+            
+            // CLS Opportunities
+            if (performance.cls > 0.1) {
+                opportunities.push({
+                    title: 'Reduce Cumulative Layout Shift',
+                    description: 'Set explicit dimensions for images and avoid dynamic content insertion',
+                    impact: 'Can improve CLS score significantly',
+                    category: 'Visual Stability'
+                });
+            }
+            
+            // FCP Opportunities
+            if (performance.fcp > 1800) {
+                opportunities.push({
+                    title: 'Improve First Contentful Paint',
+                    description: 'Minimize render-blocking resources and optimize CSS',
+                    impact: 'Can improve FCP by 500-1000ms',
+                    category: 'First Paint'
+                });
+            }
+            
+            // TTI Opportunities
+            if (performance.tti > 3800) {
+                opportunities.push({
+                    title: 'Reduce Time to Interactive',
+                    description: 'Minimize JavaScript execution time and defer non-critical scripts',
+                    impact: 'Can improve TTI by 1-2 seconds',
+                    category: 'Interactivity'
+                });
+            }
+            
+            if (opportunities.length === 0) {
+                return '<div class="bg-green-500/20 p-4 rounded-xl border border-green-500/30"><p class="text-green-300">✅ No optimization opportunities identified!</p></div>';
+            }
+            
+            return opportunities.map(opp => `
+                <div class="bg-white/5 p-4 rounded-xl border border-white/10">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <h5 class="text-lg font-semibold text-white">${opp.title}</h5>
+                                <span class="px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-300">${opp.category}</span>
+                            </div>
+                            <p class="text-blue-200 mb-2">${opp.description}</p>
+                            <p class="text-green-300 text-sm"><strong>Potential Impact:</strong> ${opp.impact}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getCoreWebVitalsThreshold(metric, value) {
+            const thresholds = {
+                'LCP': { good: 2500, poor: 4000 },
+                'CLS': { good: 0.1, poor: 0.25 },
+                'FCP': { good: 1800, poor: 3000 }
+            };
+            
+            const threshold = thresholds[metric];
+            if (!threshold) return '';
+            
+            const status = value <= threshold.good ? 'good' : value <= threshold.poor ? 'needs-improvement' : 'poor';
+            const color = status === 'good' ? 'text-green-300' : status === 'needs-improvement' ? 'text-yellow-300' : 'text-red-300';
+            
+            return `<p class="text-sm ${color} mt-2">Threshold: ${threshold.good}${metric === 'CLS' ? '' : 'ms'} (Good), ${threshold.poor}${metric === 'CLS' ? '' : 'ms'} (Poor)</p>`;
+        }
+
+
+
+
+
+        function getSeverityLevel(severity) {
+            switch(severity) {
+                case 'critical':
+                case 'high':
+                    return {icon: '🔴', label: 'HIGH', class: 'bg-red-500 text-white'};
+                case 'medium':
+                case 'warning':
+                    return {icon: '🟠', label: 'MEDIUM', class: 'bg-orange-500 text-white'};
+                case 'low':
+                default:
+                    return {icon: '🟢', label: 'LOW', class: 'bg-green-500 text-white'};
+            }
+        }
+
+        function getSEOCategory(key) {
+            const categories = {
+                'title_too_short': 'Metadata',
+                'title_too_long': 'Metadata',
+                'missing_meta_description': 'Metadata',
+                'meta_description_too_long': 'Metadata',
+                'missing_canonical': 'Canonical',
+                'incomplete_open_graph': 'Schema',
+                'missing_structured_data': 'Schema',
+                'missing_h1': 'Metadata',
+                'multiple_h1': 'Metadata'
+            };
+            return categories[key] || 'SEO';
+        }
+
+        function getCrawlabilityCategory(key) {
+            const categories = {
+                'sitemap': 'Robots.txt',
+                'robots': 'Robots.txt',
+                'https': 'HTTPS',
+                'broken_links': 'Links',
+                'redirect_chains': 'Redirects'
+            };
+            return categories[key] || 'Crawlability';
+        }
+
+
+
+        function openSolutionPage(category, issueKey, index) {
+            const data = currentAnalysisData;
+            let issueData = null;
+            
+            if (category === 'seo') {
+                issueData = data.seo.issues[index];
+            } else if (category === 'performance') {
+                issueData = {
+                    key: issueKey,
+                    message: getPerformanceIssueMessage(issueKey, data.performance),
+                    explanation: getPerformanceIssueExplanation(issueKey),
+                    fix: getPerformanceFix(issueKey),
+                    code: getPerformanceCode(issueKey),
+                    impact: getPerformanceImpact(issueKey)
+                };
+            } else if (category === 'crawlability') {
+                issueData = data.crawl.details[index];
+            }
+            
+            const params = new URLSearchParams({
+                category: category,
+                issueKey: issueKey,
+                index: index,
+                data: JSON.stringify(issueData)
+            });
+            
+            window.open(`solution-page.html?${params.toString()}`, '_blank');
+        }
+
+
+
+        // Allow Enter key to trigger analysis
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                analyze();
+            }
+        });
+
+        // Test connection on load
+        window.addEventListener('load', async function() {
+            try {
+                const response = await fetch('http://localhost:3000/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Backend connected:', data);
+                    document.getElementById('msg').textContent = '✅ Backend connected and ready for analysis!';
+                    document.getElementById('msg').className = 'text-center text-green-400 font-semibold mb-4';
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                console.error('❌ Backend connection failed:', error);
+                document.getElementById('msg').textContent = '⚠️ Backend not connected. Please start the server.';
+                document.getElementById('msg').className = 'text-center text-red-400 font-semibold mb-4';
+            }
+        });
+    </script>
+</body>
+</html>

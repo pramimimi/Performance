@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">Backend Connection Test</h1>
+        
+        <div class="bg-gray-800 p-6 rounded-lg mb-6">
+            <h2 class="text-xl font-semibold mb-4">Health Check</h2>
+            <button onclick="testHealth()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Test Health</button>
+            <div id="healthResult" class="mt-4 p-4 bg-gray-700 rounded"></div>
+        </div>
+        
+        <div class="bg-gray-800 p-6 rounded-lg mb-6">
+            <h2 class="text-xl font-semibold mb-4">Analysis Test</h2>
+            <input type="text" id="testUrl" value="https://example.com" class="w-full p-2 bg-gray-700 rounded mb-4">
+            <button onclick="testAnalysis()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">Test Analysis</button>
+            <div id="analysisResult" class="mt-4 p-4 bg-gray-700 rounded"></div>
+        </div>
+    </div>
+
+    <script>
+        async function testHealth() {
+            const result = document.getElementById('healthResult');
+            result.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('http://localhost:3000/health');
+                const data = await response.json();
+                result.innerHTML = `<div class="text-green-400">✅ Success: ${JSON.stringify(data, null, 2)}</div>`;
+            } catch (error) {
+                result.innerHTML = `<div class="text-red-400">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function testAnalysis() {
+            const result = document.getElementById('analysisResult');
+            const url = document.getElementById('testUrl').value;
+            result.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('http://localhost:3000/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                result.innerHTML = `
+                    <div class="text-green-400">✅ Analysis Success!</div>
+                    <div class="mt-2 text-sm">
+                        <div>SEO Score: ${data.seo.score}</div>
+                        <div>Performance Score: ${data.performance.overallScore}</div>
+                        <div>Crawlability Score: ${data.crawl.score}</div>
+                        <div>Issues Found: ${data.seo.issues.length}</div>
+                    </div>
+                `;
+            } catch (error) {
+                result.innerHTML = `<div class="text-red-400">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Auto-test on load
+        window.addEventListener('load', testHealth);
+    </script>
+</body>
+</html>
