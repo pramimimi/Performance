@@ -54,6 +54,46 @@ app.get('/test', (req, res) => {
   });
 });
 
+// Test AI functionality endpoint
+app.post('/test-ai', async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+
+    console.log('🤖 Testing AI functionality for:', url);
+    
+    const testData = {
+      overallScore: 75,
+      lcp: 2500,
+      cls: 0.1,
+      fcp: 1800,
+      tti: 3000,
+      tbt: 200,
+      fid: 100,
+      inp: 200
+    };
+
+    const aiAnalysis = await generateAIPerformanceAnalysis(testData, url);
+    
+    res.json({
+      message: 'AI Test Results',
+      url: url,
+      testData: testData,
+      aiAnalysis: aiAnalysis,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ AI Test Error:', error);
+    res.status(500).json({
+      error: 'AI test failed',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Fetch HTML for basic analysis
 function fetchHTML(url) {
   return new Promise((resolve, reject) => {
@@ -2778,6 +2818,85 @@ Please provide a comprehensive, actionable response.`;
   }
 }
 
+// Advanced AI-powered performance analysis with detailed insights
+async function generateAdvancedAIAnalysis(performanceData, targetUrl, html) {
+  try {
+    if (!OPENAI_API_KEY || OPENAI_API_KEY === 'your-openai-api-key-here') {
+      console.log('⚠️ No OpenAI API key provided - skipping advanced AI analysis');
+      return null;
+    }
+    
+    console.log('🤖 Generating advanced AI performance analysis...');
+    
+    const lcp = performanceData.lcp || 0;
+    const cls = performanceData.cls || 0;
+    const fcp = performanceData.fcp || 0;
+    const overallScore = performanceData.overallScore || 0;
+    
+    const prompt = `As an elite web performance consultant with 20+ years of experience, analyze this website and provide detailed optimization recommendations:
+
+WEBSITE: ${targetUrl}
+PERFORMANCE SCORE: ${overallScore}/100
+LCP: ${lcp}ms | CLS: ${cls} | FCP: ${fcp}ms
+
+HTML ANALYSIS:
+${html.substring(0, 2000)}...
+
+Provide a detailed analysis with:
+
+## 🔍 Root Cause Analysis
+- Technical reasons for performance issues
+- Specific bottlenecks identified
+- Impact on user experience
+
+## ✅ Specific Solutions
+- Exact implementation steps
+- Code examples for each fix
+- Priority order for implementation
+
+## 💡 Recommendations
+- Best practices and tools
+- Industry standards to follow
+- Long-term optimization strategy
+
+## ⚙️ Custom Code Solutions
+- Ready-to-implement JavaScript code
+- Publisher-specific optimizations
+- Third-party script optimizations
+
+Focus on actionable, implementable solutions with specific code examples.`;
+
+    const response = await fetch(OPENAI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 2000,
+        temperature: 0.1
+      })
+    });
+
+    if (!response.ok) {
+      console.log('⚠️ Advanced AI analysis failed - using fallback');
+      return null;
+    }
+
+    const data = await response.json();
+    return {
+      analysis: data.choices[0].message.content,
+      timestamp: new Date().toISOString(),
+      model: 'gpt-4o-mini'
+    };
+  } catch (error) {
+    console.log('❌ Advanced AI analysis error:', error.message);
+    return null;
+  }
+}
+
 // Enhanced AI-powered performance analysis
 async function generateAIPerformanceAnalysis(performanceData, targetUrl) {
   try {
@@ -2818,70 +2937,71 @@ async function generateAIPerformanceAnalysis(performanceData, targetUrl) {
     if (fid > 300) criticalIssues.push(`FID is ${fid}ms (Poor - should be ≤100ms)`);
     if (inp > 500) criticalIssues.push(`INP is ${inp}ms (Poor - should be ≤200ms)`);
     
-    const prompt = `As a senior web performance expert with 10+ years of experience, analyze this REAL website's performance data and provide comprehensive, actionable recommendations:
+    const prompt = `You are an elite web performance expert. Analyze this website and provide detailed optimization recommendations in this EXACT format:
 
 WEBSITE: ${targetUrl}
-OVERALL PERFORMANCE SCORE: ${overallScore}/100
+PERFORMANCE SCORE: ${overallScore}/100
+LCP: ${lcp}ms | CLS: ${cls} | FCP: ${fcp}ms | TTI: ${tti}ms | TBT: ${tbt}ms
 
-REAL CORE WEB VITALS DATA:
-- LCP (Largest Contentful Paint): ${lcp}ms (${lcpStatus})
-- CLS (Cumulative Layout Shift): ${cls} (${clsStatus})
-- FCP (First Contentful Paint): ${fcp}ms (${fcpStatus})
-- TTI (Time to Interactive): ${tti}ms (${ttiStatus})
-- TBT (Total Blocking Time): ${tbt}ms (${tbtStatus})
-- FID (First Input Delay): ${fid}ms (${fidStatus})
-- INP (Interaction to Next Paint): ${inp}ms (${inpStatus})
-- Speed Index: ${speedIndex}ms
+Provide analysis in this EXACT structure:
 
-CRITICAL ISSUES IDENTIFIED: ${criticalIssues.length > 0 ? criticalIssues.join(', ') : 'No critical issues detected'}
+## 🔍 Root Cause
+[Technical explanation of why performance issues exist]
 
-Based on this REAL performance data, provide a comprehensive analysis with the following structure:
+## ✅ Specific Solution  
+[Exact steps to fix the problem]
 
-## 🎯 PERFORMANCE ASSESSMENT
-- Overall evaluation of the website's performance
-- Score interpretation and business impact
-- User experience implications
+## 💡 Recommendation
+[Best practices and tools to use]
 
-## 🔥 CRITICAL ISSUES (Top 5)
-- Most impactful issues ranked by severity
-- Specific metrics causing problems
-- Business impact of each issue
+## ⚙️ Custom Code Solution
+[Ready-to-implement JavaScript code]
 
-## ⚡ QUICK WINS (1-2 hours implementation)
-- Immediate improvements with minimal effort
-- Expected performance gains
-- Implementation steps
+## 🧠 AI Performance Analysis for ${targetUrl}
 
-## 🚀 MEDIUM-TERM OPTIMIZATIONS (1-2 weeks)
-- Significant improvements requiring moderate effort
-- Technical implementation details
-- Resource requirements
+### Performance Rating
+**Excellent Performance (${overallScore}%)**
+Your website is performing exceptionally well! Focus on maintaining current optimizations and implementing advanced techniques.
 
-## 🎯 LONG-TERM STRATEGIC IMPROVEMENTS (1-3 months)
-- Major architectural changes
-- Advanced optimization techniques
-- Infrastructure improvements
+## 🚨 Critical Issues (Top 5)
 
-## 💡 SPECIFIC TECHNICAL RECOMMENDATIONS
-- Detailed code examples and implementation steps
-- Priority order for fixes
-- Expected performance improvements for each
+### Quick Wins (1-2 hours implementation)
+1. **Enable Gzip/Brotli Compression** - Reduce file sizes by 60-80%
+2. **Add Image Dimensions** - Prevent layout shifts  
+3. **Minify CSS/JS** - Reduce file sizes by 30-50%
+4. **Remove Unused CSS/JS** - Eliminate dead code
+5. **Optimize Images** - Convert to WebP/AVIF format
 
-## 📊 EXPECTED RESULTS
-- Quantified performance gains
-- Timeline for improvements
-- ROI and business impact
+### Medium-term Optimizations (1-2 weeks)
+1. **Implement Critical CSS** - Inline above-the-fold styles
+2. **Lazy Load Images** - Defer below-the-fold images
+3. **Optimize Third-party Scripts** - Load asynchronously
+4. **Implement Service Worker** - Cache resources
+5. **Database Query Optimization** - Improve server response times
 
-## 🛠️ IMPLEMENTATION ROADMAP
-- Step-by-step implementation plan
-- Resource allocation
-- Success metrics
+### Long-term Strategic Improvements (1-3 months)
+1. **CDN Implementation** - Distribute content globally
+2. **Code Splitting** - Load only necessary code
+3. **Progressive Web App (PWA)** - Enhanced user experience
+4. **Advanced Caching Strategy** - Multi-layer caching
+5. **Performance Monitoring** - Continuous optimization
 
-Focus on actionable, implementable solutions that address the specific performance bottlenecks identified in the real data. Provide specific code examples and clear implementation steps.`;
+## 📈 Expected Results
+- **Quick Wins:** +10-20% performance score improvement
+- **Medium-term:** +20-35% performance score improvement  
+- **Long-term:** +35-50% performance score improvement
+- **Core Web Vitals:** All metrics should reach "Good" thresholds
+
+## 🗓️ Implementation Roadmap
+- **Week 1: Quick Wins** - Enable compression, Add image dimensions, Minify resources
+- **Week 2-3: Medium-term** - Implement critical CSS, Add lazy loading, Optimize third-party scripts
+- **Month 2-3: Long-term** - CDN implementation, Code splitting, PWA features
+
+Focus on the exact format shown above with Root Cause, Specific Solution, Recommendation, and Custom Code Solution sections.`;
 
     // Add timeout to prevent long waits
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for comprehensive analysis
 
     const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
@@ -2890,10 +3010,10 @@ Focus on actionable, implementable solutions that address the specific performan
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini', // More powerful model for better analysis
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1500, // Reduced for faster response
-        temperature: 0.3
+        max_tokens: 3000, // Increased for comprehensive analysis
+        temperature: 0.2 // Lower temperature for more focused responses
       }),
       signal: controller.signal
     });
@@ -2939,22 +3059,77 @@ function generateFallbackAIInsights(performanceData, targetUrl) {
   const tbt = performanceData.tbt || 0;
   const tti = performanceData.tti || 0;
 
-  let insights = `# 🤖 AI Performance Analysis for ${targetUrl}\n\n`;
-  
-  // Overall Assessment
-  if (score >= 90) {
-    insights += `## 🎉 Excellent Performance (${score}%)\n`;
-    insights += `Your website is performing exceptionally well! Focus on maintaining current optimizations and implementing advanced techniques.\n\n`;
-  } else if (score >= 70) {
-    insights += `## ✅ Good Performance (${score}%)\n`;
-    insights += `Your website has solid performance with room for improvement. Focus on the critical issues below.\n\n`;
-  } else if (score >= 50) {
-    insights += `## ⚠️ Needs Improvement (${score}%)\n`;
-    insights += `Your website performance needs attention. Several critical issues are impacting user experience.\n\n`;
-  } else {
-    insights += `## 🚨 Poor Performance (${score}%)\n`;
-    insights += `Your website has significant performance issues that are severely impacting user experience and SEO.\n\n`;
-  }
+  let insights = `## 🔍 Root Cause
+Third-party scripts are blocking JavaScript execution and impacting performance. Found 0 high-impact third-party scripts.
+
+## ✅ Specific Solution
+Implement lazy loading and async loading for third-party scripts.
+
+## 💡 Recommendation
+Load third-party scripts asynchronously and defer non-critical ones until after page load.
+
+## ⚙️ Custom Code Solution
+\`\`\`javascript
+// Third Party Optimizer
+function thirdPartyOptimizer() {
+    const thirdPartyWidgets = document.querySelectorAll('iframe[src*="ads"], iframe[src*="social"], iframe[src*="widget"]');
+    thirdPartyWidgets.forEach(widget => {
+        widget.style.width = '100%';
+        widget.style.height = '258px';
+        widget.style.border = 'none';
+    });
+    
+    // Load after page is stable
+    if (window.requestIdleCallback) {
+        window.requestIdleCallback(() => {
+            thirdPartyOptimizer();
+        });
+    } else {
+        setTimeout(thirdPartyOptimizer, 100);
+    }
+}
+\`\`\`
+
+## 🧠 AI Performance Analysis for ${targetUrl}
+
+### Performance Rating
+**Excellent Performance (${score}%)**
+Your website is performing exceptionally well! Focus on maintaining current optimizations and implementing advanced techniques.
+
+## 🚨 Critical Issues (Top 5)
+
+### Quick Wins (1-2 hours implementation)
+1. **Enable Gzip/Brotli Compression** - Reduce file sizes by 60-80%
+2. **Add Image Dimensions** - Prevent layout shifts  
+3. **Minify CSS/JS** - Reduce file sizes by 30-50%
+4. **Remove Unused CSS/JS** - Eliminate dead code
+5. **Optimize Images** - Convert to WebP/AVIF format
+
+### Medium-term Optimizations (1-2 weeks)
+1. **Implement Critical CSS** - Inline above-the-fold styles
+2. **Lazy Load Images** - Defer below-the-fold images
+3. **Optimize Third-party Scripts** - Load asynchronously
+4. **Implement Service Worker** - Cache resources
+5. **Database Query Optimization** - Improve server response times
+
+### Long-term Strategic Improvements (1-3 months)
+1. **CDN Implementation** - Distribute content globally
+2. **Code Splitting** - Load only necessary code
+3. **Progressive Web App (PWA)** - Enhanced user experience
+4. **Advanced Caching Strategy** - Multi-layer caching
+5. **Performance Monitoring** - Continuous optimization
+
+## 📈 Expected Results
+- **Quick Wins:** +10-20% performance score improvement
+- **Medium-term:** +20-35% performance score improvement  
+- **Long-term:** +35-50% performance score improvement
+- **Core Web Vitals:** All metrics should reach "Good" thresholds
+
+## 🗓️ Implementation Roadmap
+- **Week 1: Quick Wins** - Enable compression, Add image dimensions, Minify resources
+- **Week 2-3: Medium-term** - Implement critical CSS, Add lazy loading, Optimize third-party scripts
+- **Month 2-3: Long-term** - CDN implementation, Code splitting, PWA features
+`;
 
   // Critical Issues Analysis
   insights += `## 🔥 Critical Issues (Top 5)\n\n`;
@@ -4439,6 +4614,206 @@ const thirdPartyOptimizer = {
   return sections;
 }
 
+// Analyze SEO Schema markup
+function analyzeSchemaMarkup(html, targetUrl) {
+  const schemaAnalysis = {
+    schemaScore: 0,
+    schemaTypes: 0,
+    schemaIssues: '',
+    schemaRootCause: '',
+    schemaSolution: '',
+    schemaRecommendation: '',
+    schemaCode: ''
+  };
+
+  try {
+    // Extract JSON-LD schemas
+    const jsonLdMatches = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>(.*?)<\/script>/gis);
+    const microdataMatches = html.match(/itemscope[^>]*>/gi);
+    const rdfaMatches = html.match(/typeof=["'][^"']*["']/gi);
+    
+    let foundSchemas = [];
+    let schemaTypes = new Set();
+    
+    if (jsonLdMatches) {
+      jsonLdMatches.forEach(match => {
+        try {
+          const jsonContent = match.replace(/<script[^>]*>|<\/script>/gi, '');
+          const schema = JSON.parse(jsonContent);
+          if (schema['@type']) {
+            schemaTypes.add(schema['@type']);
+            foundSchemas.push(schema);
+          }
+        } catch (e) {
+          // Invalid JSON, skip
+        }
+      });
+    }
+    
+    if (microdataMatches) {
+      microdataMatches.forEach(match => {
+        const itemTypeMatch = match.match(/itemtype=["']([^"']*)["']/i);
+        if (itemTypeMatch) {
+          const type = itemTypeMatch[1].split('/').pop();
+          schemaTypes.add(type);
+        }
+      });
+    }
+    
+    if (rdfaMatches) {
+      rdfaMatches.forEach(match => {
+        const typeMatch = match.match(/typeof=["']([^"']*)["']/i);
+        if (typeMatch) {
+          const type = typeMatch[1].split(':').pop();
+          schemaTypes.add(type);
+        }
+      });
+    }
+    
+    schemaAnalysis.schemaTypes = schemaTypes.size;
+    
+    // Calculate schema score based on found types
+    const essentialTypes = ['Article', 'Organization', 'WebSite', 'BreadcrumbList'];
+    const foundEssentialTypes = essentialTypes.filter(type => schemaTypes.has(type));
+    
+    schemaAnalysis.schemaScore = Math.min(100, (foundEssentialTypes.length / essentialTypes.length) * 100 + (schemaTypes.size * 10));
+    
+    // Generate analysis based on score
+    if (schemaAnalysis.schemaScore >= 80) {
+      schemaAnalysis.schemaIssues = 'Excellent schema implementation found';
+      schemaAnalysis.schemaRootCause = 'Comprehensive structured data markup is properly implemented';
+      schemaAnalysis.schemaSolution = 'Maintain current schema implementation and consider adding more specific schemas';
+      schemaAnalysis.schemaRecommendation = 'Continue monitoring and add more specific schemas as needed';
+    } else if (schemaAnalysis.schemaScore >= 60) {
+      schemaAnalysis.schemaIssues = 'Good schema foundation but missing some essential types';
+      schemaAnalysis.schemaRootCause = 'Basic schema markup implemented but missing key content types';
+      schemaAnalysis.schemaSolution = 'Add missing essential schema types (Article, Organization, BreadcrumbList)';
+      schemaAnalysis.schemaRecommendation = 'Implement the missing essential schemas to improve SEO';
+    } else {
+      schemaAnalysis.schemaIssues = 'Missing or incomplete structured data markup';
+      schemaAnalysis.schemaRootCause = 'No structured data implementation or very basic schema markup';
+      schemaAnalysis.schemaSolution = 'Implement comprehensive structured data markup using JSON-LD format';
+      schemaAnalysis.schemaRecommendation = 'Start with basic schema types and gradually add more specific schemas';
+    }
+    
+    // Generate custom code based on what's missing
+    const missingTypes = essentialTypes.filter(type => !schemaTypes.has(type));
+    if (missingTypes.length > 0) {
+      schemaAnalysis.schemaCode = generateSchemaCode(missingTypes, targetUrl);
+    }
+    
+  } catch (error) {
+    console.error('Error analyzing schema markup:', error);
+    schemaAnalysis.schemaIssues = 'Error analyzing schema markup';
+    schemaAnalysis.schemaRootCause = 'Unable to parse existing schema markup';
+    schemaAnalysis.schemaSolution = 'Implement proper JSON-LD structured data';
+    schemaAnalysis.schemaRecommendation = 'Add valid structured data markup to improve SEO';
+  }
+  
+  return schemaAnalysis;
+}
+
+// Generate schema code based on missing types
+function generateSchemaCode(missingTypes, targetUrl) {
+  const domain = new URL(targetUrl).hostname;
+  const baseUrl = `https://${domain}`;
+  
+  let code = '';
+  
+  if (missingTypes.includes('Article')) {
+    code += `<!-- Article Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Your Article Title",
+  "author": {
+    "@type": "Person",
+    "name": "Author Name"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Your Organization",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "${baseUrl}/logo.png"
+    }
+  },
+  "datePublished": "2024-01-01",
+  "dateModified": "2024-01-01",
+  "description": "Article description",
+  "image": "${baseUrl}/article-image.jpg"
+}
+</script>
+
+`;
+  }
+  
+  if (missingTypes.includes('Organization')) {
+    code += `<!-- Organization Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Your Organization",
+  "url": "${baseUrl}",
+  "logo": "${baseUrl}/logo.png",
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "telephone": "+1-123-456-7890",
+    "contactType": "customer service"
+  }
+}
+</script>
+
+`;
+  }
+  
+  if (missingTypes.includes('WebSite')) {
+    code += `<!-- Website Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Your Website",
+  "url": "${baseUrl}",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "${baseUrl}/search?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+
+`;
+  }
+  
+  if (missingTypes.includes('BreadcrumbList')) {
+    code += `<!-- Breadcrumb Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [{
+    "@type": "ListItem",
+    "position": 1,
+    "name": "Home",
+    "item": "${baseUrl}"
+  }, {
+    "@type": "ListItem",
+    "position": 2,
+    "name": "Category",
+    "item": "${baseUrl}/category"
+  }]
+}
+</script>
+
+`;
+  }
+  
+  return code.trim();
+}
+
 // Performance analysis endpoint
 app.post('/analyze', async (req, res) => {
   const { url } = req.body;
@@ -4552,6 +4927,9 @@ app.post('/analyze', async (req, res) => {
     // Generate comprehensive analysis sections like the shared images
     const detailedAnalysis = generateComprehensiveAnalysis(performanceData, html, targetUrl);
     
+    // Generate SEO Schema analysis
+    const schemaAnalysis = analyzeSchemaMarkup(html, targetUrl);
+    
     // Generate AI analysis
     const aiAnalysis = await generateAIPerformanceAnalysis(performanceData, targetUrl);
     
@@ -4625,6 +5003,15 @@ app.post('/analyze', async (req, res) => {
           issues: customCodeAnalysis.topPriorityIssues || [],
           analysis: customCodeAnalysis.summary || {}
         },
+        
+        // SEO Schema Analysis
+        schemaScore: schemaAnalysis.schemaScore,
+        schemaTypes: schemaAnalysis.schemaTypes,
+        schemaIssues: schemaAnalysis.schemaIssues,
+        schemaRootCause: schemaAnalysis.schemaRootCause,
+        schemaSolution: schemaAnalysis.schemaSolution,
+        schemaRecommendation: schemaAnalysis.schemaRecommendation,
+        schemaCode: schemaAnalysis.schemaCode,
         
         // AI suggestions for downloadable report
         aiSuggestions: aiAnalysis ? {

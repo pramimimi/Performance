@@ -30,14 +30,14 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
+<body class="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900">
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
         <header class="text-center mb-12">
             <h1 class="text-5xl font-bold text-white mb-4 flex items-center justify-center gap-3">
                 <span class="text-6xl">⚡</span>
                 Performance Analyzer
-                </h1>
+            </h1>
             <p class="text-blue-200 text-xl">AI-powered website performance analysis</p>
         </header>
 
@@ -183,7 +183,7 @@
                     msg.textContent = '❌ Connection Error! Please start a web server.';
                     alert('❌ Connection Error!\n\nPlease make sure:\n1. The backend server is running on port 3000\n2. You are accessing the frontend through a web server (not file://)\n\nTo fix this, run: python -m http.server 8000 in the frontend folder\nThen open: http://localhost:8000/stable-seo-analyzer.html');
                 } else {
-                msg.textContent = `❌ Analysis failed: ${error.message}`;
+                    msg.textContent = `❌ Analysis failed: ${error.message}`;
                 }
             } finally {
                 isAnalyzing = false;
@@ -224,8 +224,7 @@
                 customCodeAndThirdParty: data.performance?.customCodeAndThirdParty || data.customCodeAnalysis,
                 publisherCode: data.performance?.publisherCode,
                 thirdPartyCode: data.performance?.thirdPartyCode,
-                highPriorityIssues: data.performance?.highPriorityIssues,
-                detailedAnalysis: data.detailedAnalysis || []
+                highPriorityIssues: data.performance?.highPriorityIssues
             };
             
             result.innerHTML = `
@@ -310,7 +309,7 @@
                                 <span class="text-blue-200 font-semibold">INP</span>
                                 <span class="text-white font-bold">${performance.inp || 0}ms</span>
                             </div>
-                        <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                            <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
                                 <div class="progress-bar" style="width: ${Math.min(100, Math.max(0, (500 - (performance.inp || 0)) / 5))}%"></div>
                             </div>
                             <div class="text-sm ${getVitalStatus(performance.coreWebVitals.inp).color}">
@@ -318,104 +317,8 @@
                             </div>
                             <div class="text-xs text-gray-400 mt-1">Click for detailed report</div>
                         </div>
-                                </div>
-                            </div>
-
-                            <!-- Detailed Analysis Sections -->
-                            ${performance.detailedAnalysis && performance.detailedAnalysis.length > 0 ? `
-                                <div class="glass p-8 rounded-2xl mb-8">
-                                    <h3 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
-                                        🔍 Comprehensive Analysis Report
-                                    </h3>
-                                    <div class="space-y-6">
-                                        ${performance.detailedAnalysis.map(section => `
-                                            <div class="bg-white/5 p-6 rounded-xl">
-                                                <div class="flex items-center justify-between mb-4">
-                                                    <h4 class="text-xl font-bold text-white">${section.title}</h4>
-                                                    <span class="px-3 py-1 rounded-full text-sm font-medium ${
-                                                        section.status === 'good' ? 'bg-green-500/20 text-green-400' :
-                                                        section.status === 'needs-improvement' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                        section.status === 'poor' ? 'bg-red-500/20 text-red-400' :
-                                                        'bg-blue-500/20 text-blue-400'
-                                                    }">
-                                                        ${section.status === 'good' ? 'GOOD' :
-                                                          section.status === 'needs-improvement' ? 'NEEDS IMPROVEMENT' :
-                                                          section.status === 'poor' ? 'POOR' :
-                                                          section.status.toUpperCase()}
-                                                    </span>
-                                                </div>
-                                                
-                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                                    <div class="text-blue-200">
-                                                        <strong>Current Value:</strong> ${section.currentValue}
-                                                    </div>
-                                                    <div class="text-blue-200">
-                                                        <strong>Target Value:</strong> ${section.targetValue}
-                                                    </div>
-                                                </div>
-                                                
-                                                <p class="text-gray-300 mb-4">${section.description}</p>
-                                                <p class="text-sm font-medium ${
-                                                    section.impact.includes('High') ? 'text-red-400' :
-                                                    section.impact.includes('Medium') ? 'text-yellow-400' : 'text-green-400'
-                                                }">
-                                                    Impact: ${section.impact}
-                                                </p>
-                                                
-                                                <!-- Analysis Sections -->
-                                                <div class="mt-6 space-y-4">
-                                                    <!-- Key Factor -->
-                                                    <div class="p-4 border-l-4 border-red-500 bg-red-500/10 rounded-r-lg">
-                                                        <div class="flex items-center mb-2">
-                                                            <span class="text-xl mr-2">🔑</span>
-                                                            <h5 class="font-bold text-white">Key Factor:</h5>
-                                                        </div>
-                                                        <p class="text-gray-300">${section.keyFactor}</p>
-                                                    </div>
-                                                    
-                                                    <!-- Root Cause -->
-                                                    <div class="p-4 border-l-4 border-orange-500 bg-orange-500/10 rounded-r-lg">
-                                                        <div class="flex items-center mb-2">
-                                                            <span class="text-xl mr-2">🔍</span>
-                                                            <h5 class="font-bold text-white">Root Cause:</h5>
-                                                        </div>
-                                                        <p class="text-gray-300">${section.rootCause}</p>
-                                                    </div>
-                                                    
-                                                    <!-- Specific Solution -->
-                                                    <div class="p-4 border-l-4 border-green-500 bg-green-500/10 rounded-r-lg">
-                                                        <div class="flex items-center mb-2">
-                                                            <span class="text-xl mr-2">✅</span>
-                                                            <h5 class="font-bold text-white">Specific Solution:</h5>
-                                                        </div>
-                                                        <p class="text-gray-300">${section.specificSolution}</p>
-                                                    </div>
-                                                    
-                                                    <!-- Recommendation -->
-                                                    <div class="p-4 border-l-4 border-blue-500 bg-blue-500/10 rounded-r-lg">
-                                                        <div class="flex items-center mb-2">
-                                                            <span class="text-xl mr-2">💡</span>
-                                                            <h5 class="font-bold text-white">Recommendation:</h5>
-                                                        </div>
-                                                        <p class="text-gray-300">${section.recommendation}</p>
-                                                    </div>
-                                                    
-                                                    <!-- Custom Code Solution -->
-                                                    <div class="p-4 border-l-4 border-purple-500 bg-purple-500/10 rounded-r-lg">
-                                                        <div class="flex items-center mb-2">
-                                                            <span class="text-xl mr-2">⚙️</span>
-                                                            <h5 class="font-bold text-white">Custom Code Solution:</h5>
-                                                        </div>
-                                                        <div class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto mt-2">
-                                                            <pre><code>${section.customCodeSolution}</code></pre>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            ` : ''}
+                    </div>
+                </div>
             `;
         }
 
@@ -428,13 +331,13 @@
 
             // Create a new window for PDF generation
             const printWindow = window.open('', '_blank');
-            const data = currentAnalysisData;
-            const url = data.url || 'Unknown URL';
-            const timestamp = new Date(data.timestamp || Date.now()).toLocaleString();
-            
-            // Debug AI analysis data
-            console.log('AI Analysis data:', data.aiAnalysis);
-            console.log('AI Analysis type:', typeof data.aiAnalysis);
+            const aiSuggestions = currentAnalysisData.performance.aiSuggestions;
+            const customCodeAnalysis = currentAnalysisData.performance.customCodeAndThirdParty || {};
+            const publisherCode = currentAnalysisData.performance.publisherCode;
+            const thirdPartyCode = currentAnalysisData.performance.thirdPartyCode;
+            const highPriorityIssues = currentAnalysisData.performance.highPriorityIssues;
+            const url = currentAnalysisData.url;
+            const timestamp = new Date().toLocaleString();
 
             // Generate HTML content for PDF matching shared images format
             const pdfContent = `
@@ -616,11 +519,11 @@
             <span class="metric-status status-good">ANALYSIS COMPLETE</span>
         </div>
         <div class="analysis-content">
-            <p><strong>Overall Score:</strong> ${data.performance?.overallScore || data.overallScore || 0}% | <strong>Data Source:</strong> ${data.dataSource || 'PageSpeed API'} | <strong>Analysis Time:</strong> ${data.analysisTime || 0}ms</p>
+            <p><strong>Overall Score:</strong> ${currentAnalysisData.performance?.overallScore || currentAnalysisData.overallScore || 0}% | <strong>Data Source:</strong> ${currentAnalysisData.dataSource || 'PageSpeed API'} | <strong>Analysis Time:</strong> ${currentAnalysisData.analysisTime || 0}ms</p>
         </div>
     </div>
 
-    ${data.detailedAnalysis && data.detailedAnalysis.length > 0 ? data.detailedAnalysis.map(section => `
+    ${currentAnalysisData.detailedAnalysis && currentAnalysisData.detailedAnalysis.length > 0 ? currentAnalysisData.detailedAnalysis.map(section => `
         <!-- ${section.metric} Analysis -->
         <div class="metric-section">
             <div class="metric-header">
@@ -701,11 +604,11 @@
     `).join('') : ''}
 
     <!-- Additional AI Analysis if available -->
-    ${data.aiAnalysis ? `
+    ${currentAnalysisData.aiAnalysis ? `
         <div class="metric-section ai-insights">
             <h2>🤖 Additional AI Insights</h2>
             <div style="white-space: pre-line; font-family: 'Segoe UI', sans-serif; line-height: 1.6;">
-                ${typeof data.aiAnalysis === 'string' ? data.aiAnalysis : (data.aiAnalysis.summary || JSON.stringify(data.aiAnalysis))}
+                ${typeof currentAnalysisData.aiAnalysis === 'string' ? currentAnalysisData.aiAnalysis : (currentAnalysisData.aiAnalysis.summary || JSON.stringify(currentAnalysisData.aiAnalysis))}
             </div>
         </div>
     ` : `
@@ -767,106 +670,9 @@
             };
         }
 
-        // Show metric modal with comprehensive analysis
+        // Show metric modal
         function showMetricReport(metric) {
-            if (!currentAnalysisData || !currentAnalysisData.detailedAnalysis) {
-                alert('No detailed analysis data available. Please run the analysis first.');
-                return;
-            }
-
-            // Find the analysis section for this metric
-            const analysisSection = currentAnalysisData.detailedAnalysis.find(section => 
-                section.metric.toLowerCase() === metric.toLowerCase()
-            );
-
-            if (!analysisSection) {
-                alert(`No detailed analysis available for ${metric.toUpperCase()}. This metric may be performing well.`);
-                return;
-            }
-
-            // Create modal content
-            const modalContent = `
-                <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                        <div class="p-6">
-                            <div class="flex justify-between items-center mb-6">
-                                <h2 class="text-2xl font-bold text-gray-800">${analysisSection.title}</h2>
-                                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
-                            </div>
-                            
-                            <!-- Status and Values -->
-                            <div class="mb-6 p-4 bg-gray-50 rounded-lg">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-lg font-semibold">Current Value: ${analysisSection.currentValue}</span>
-                                    <span class="text-lg font-semibold">Target Value: ${analysisSection.targetValue}</span>
-                                </div>
-                                <div class="text-sm text-gray-600 mb-2">${analysisSection.description}</div>
-                                <div class="text-sm font-medium ${analysisSection.impact.includes('High') ? 'text-red-600' : analysisSection.impact.includes('Medium') ? 'text-yellow-600' : 'text-green-600'}">
-                                    Impact: ${analysisSection.impact}
-                                </div>
-                            </div>
-
-                            <!-- Key Factor -->
-                            <div class="mb-4 p-4 border-l-4 border-red-500 bg-red-50 rounded-r-lg">
-                                <div class="flex items-center mb-2">
-                                    <span class="text-2xl mr-2">🔑</span>
-                                    <h3 class="text-lg font-bold text-gray-800">Key Factor:</h3>
-                                </div>
-                                <p class="text-gray-700">${analysisSection.keyFactor}</p>
-                            </div>
-
-                            <!-- Root Cause -->
-                            <div class="mb-4 p-4 border-l-4 border-orange-500 bg-orange-50 rounded-r-lg">
-                                <div class="flex items-center mb-2">
-                                    <span class="text-2xl mr-2">🔍</span>
-                                    <h3 class="text-lg font-bold text-gray-800">Root Cause:</h3>
-                                </div>
-                                <p class="text-gray-700">${analysisSection.rootCause}</p>
-                            </div>
-
-                            <!-- Specific Solution -->
-                            <div class="mb-4 p-4 border-l-4 border-green-500 bg-green-50 rounded-r-lg">
-                                <div class="flex items-center mb-2">
-                                    <span class="text-2xl mr-2">✅</span>
-                                    <h3 class="text-lg font-bold text-gray-800">Specific Solution:</h3>
-                                </div>
-                                <p class="text-gray-700">${analysisSection.specificSolution}</p>
-                            </div>
-
-                            <!-- Recommendation -->
-                            <div class="mb-4 p-4 border-l-4 border-blue-500 bg-blue-50 rounded-r-lg">
-                                <div class="flex items-center mb-2">
-                                    <span class="text-2xl mr-2">💡</span>
-                                    <h3 class="text-lg font-bold text-gray-800">Recommendation:</h3>
-                                </div>
-                                <p class="text-gray-700">${analysisSection.recommendation}</p>
-                            </div>
-
-                            <!-- Custom Code Solution -->
-                            <div class="mb-4 p-4 border-l-4 border-purple-500 bg-purple-50 rounded-r-lg">
-                                <div class="flex items-center mb-2">
-                                    <span class="text-2xl mr-2">⚙️</span>
-                                    <h3 class="text-lg font-bold text-gray-800">Custom Code Solution:</h3>
-                                </div>
-                                <div class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto">
-                                    <pre><code>${analysisSection.customCodeSolution}</code></pre>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Add modal to page
-            document.body.insertAdjacentHTML('beforeend', modalContent);
-        }
-
-        // Close modal function
-        function closeModal() {
-            const modal = document.querySelector('.fixed.inset-0');
-            if (modal) {
-                modal.remove();
-            }
+            alert('Detailed metric report for ' + metric + ' - Feature coming soon!');
         }
 
         // Allow Enter key to trigger analysis
