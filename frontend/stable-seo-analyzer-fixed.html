@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Quintype Performance Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .milk-button {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #1f2937;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .milk-button:hover {
+            background: linear-gradient(135deg, #fde68a, #fcd34d);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #10b981, #34d399);
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-5xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+                <span class="text-6xl">⚡</span>
+                Performance Analyzer
+            </h1>
+            <p class="text-blue-200 text-xl">AI-powered website performance analysis</p>
+        </header>
+
+        <!-- Main Analysis Section -->
+        <section class="glass p-8 rounded-2xl mb-8">
+            <div class="text-center mb-8">
+                <h2 class="text-4xl font-bold text-white mb-2">🚀 Performance Analysis</h2>
+                <p class="text-blue-200 text-lg">Enter any website URL to get comprehensive performance insights</p>
+            </div>
+            
+            <div class="flex gap-4 mb-6">
+                <input 
+                    type="url" 
+                    id="urlInput" 
+                    placeholder="https://example.com" 
+                    class="flex-1 px-6 py-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                <button 
+                    id="analyzeBtn"
+                    onclick="analyze()" 
+                    class="milk-button px-8 py-4 rounded-xl font-bold text-lg flex items-center gap-2"
+                >
+                    <span>⚡</span> Analyze Performance
+                </button>
+            </div>
+            
+            <div id="msg" class="text-center text-green-400 font-semibold mb-4"></div>
+        </section>
+
+        <!-- Results Section -->
+        <div id="result" class="hidden">
+            <!-- Results will be populated here -->
+        </div>
+    </div>
+
+    <script>
+        let isAnalyzing = false;
+        let currentAnalysisData = null;
+
+        // Helper function to get vital status from metric value
+        function getVitalStatusFromValue(value, metric) {
+            if (value === undefined || value === null) {
+                return { status: 'poor', color: 'text-red-400', text: 'Poor' };
+            }
+            
+            switch (metric) {
+                case 'lcp':
+                    if (value <= 2500) return { status: 'good', color: 'text-green-400', text: 'Good' };
+                    if (value <= 4000) return { status: 'needs-improvement', color: 'text-yellow-400', text: 'Needs Improvement' };
+                    return { status: 'poor', color: 'text-red-400', text: 'Poor' };
+                
+                case 'cls':
+                    if (value <= 0.1) return { status: 'good', color: 'text-green-400', text: 'Good' };
+                    if (value <= 0.25) return { status: 'needs-improvement', color: 'text-yellow-400', text: 'Needs Improvement' };
+                    return { status: 'poor', color: 'text-red-400', text: 'Poor' };
+                
+                case 'fcp':
+                    if (value <= 1800) return { status: 'good', color: 'text-green-400', text: 'Good' };
+                    if (value <= 3000) return { status: 'needs-improvement', color: 'text-yellow-400', text: 'Needs Improvement' };
+                    return { status: 'poor', color: 'text-red-400', text: 'Poor' };
+                
+                case 'fid':
+                    if (value <= 100) return { status: 'good', color: 'text-green-400', text: 'Good' };
+                    if (value <= 300) return { status: 'needs-improvement', color: 'text-yellow-400', text: 'Needs Improvement' };
+                    return { status: 'poor', color: 'text-red-400', text: 'Poor' };
+                
+                case 'inp':
+                    if (value <= 200) return { status: 'good', color: 'text-green-400', text: 'Good' };
+                    if (value <= 500) return { status: 'needs-improvement', color: 'text-yellow-400', text: 'Needs Improvement' };
+                    return { status: 'poor', color: 'text-red-400', text: 'Poor' };
+                
+                default:
+                    return { status: 'poor', color: 'text-red-400', text: 'Poor' };
+            }
+        }
+
+        function getVitalStatus(status) {
+            const statuses = {
+                'good': { text: 'Good', color: 'text-green-400' },
+                'needs-improvement': { text: 'Needs Improvement', color: 'text-yellow-400' },
+                'poor': { text: 'Poor', color: 'text-red-400' }
+            };
+            return statuses[status] || statuses['poor'];
+        }
+
+        async function analyze() {
+            console.log('=== ANALYZE FUNCTION CALLED ===');
+            
+            if (isAnalyzing) {
+                console.log('Already analyzing, returning');
+                return;
+            }
+            
+            const url = document.getElementById('urlInput').value.trim();
+            const msg = document.getElementById('msg');
+            const result = document.getElementById('result');
+            const btn = document.getElementById('analyzeBtn');
+            
+            console.log('URL:', url);
+            console.log('Elements found:', { msg, result, btn });
+            
+            if (!url) {
+                console.log('No URL provided');
+                msg.textContent = 'Please enter a URL';
+                return;
+            }
+            
+            isAnalyzing = true;
+            msg.textContent = '⚡ Analyzing website performance... This may take 15-30 seconds';
+            btn.disabled = true;
+            btn.textContent = '🔄 Analyzing...';
+            
+            try {
+                console.log('Making API call to:', 'http://localhost:3000/analyze');
+                
+                const response = await fetch('http://localhost:3000/analyze', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                console.log('Response received:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Data received:', data);
+                
+                const issueCount = data.performanceCategories?.performanceIssues?.issues?.length || 
+                                 data.performanceCategories?.highPriorityIssues?.issues?.length || 0;
+                msg.textContent = `✅ Analysis complete! Found ${issueCount} performance issues.`;
+                console.log('Calling displayResults with data:', data);
+                displayResults(data);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                
+                if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
+                    msg.textContent = '❌ Connection Error! Please start a web server.';
+                    alert('❌ Connection Error!\n\nPlease make sure:\n1. The backend server is running on port 3000\n2. You are accessing the frontend through a web server (not file://)\n\nTo fix this, run: python -m http.server 8000 in the frontend folder\nThen open: http://localhost:8000/stable-seo-analyzer.html');
+                } else {
+                    msg.textContent = `❌ Analysis failed: ${error.message}`;
+                }
+            } finally {
+                isAnalyzing = false;
+                btn.disabled = false;
+                btn.textContent = '⚡ Analyze Performance';
+            }
+        }
+
+        function displayResults(data) {
+            console.log('displayResults called with data:', data);
+            currentAnalysisData = data;
+            const result = document.getElementById('result');
+            console.log('Result element found:', result);
+            result.classList.remove('hidden');
+            console.log('Hidden class removed from result element');
+            
+            // Handle new API structure with proper fallbacks
+            const performance = {
+                overallScore: data.overallScore || 0,
+                lcp: data.coreWebVitals?.lcp || 0,
+                cls: data.coreWebVitals?.cls || 0,
+                fcp: data.coreWebVitals?.fcp || 0,
+                tti: data.coreWebVitals?.tti || 0,
+                tbt: data.coreWebVitals?.tbt || 0,
+                speedIndex: data.coreWebVitals?.speedIndex || 0,
+                fid: data.coreWebVitals?.fid || 0,
+                inp: data.coreWebVitals?.inp || 0,
+                issues: data.performanceCategories?.performanceIssues?.issues || [],
+                coreWebVitals: {
+                    lcp: getVitalStatusFromValue(data.coreWebVitals?.lcp, 'lcp').status,
+                    cls: getVitalStatusFromValue(data.coreWebVitals?.cls, 'cls').status,
+                    fcp: getVitalStatusFromValue(data.coreWebVitals?.fcp, 'fcp').status,
+                    fid: getVitalStatusFromValue(data.coreWebVitals?.fid, 'fid').status,
+                    inp: getVitalStatusFromValue(data.coreWebVitals?.inp, 'inp').status
+                },
+                // Add report data for downloadable PDF
+                aiSuggestions: data.performance?.aiSuggestions || data.aiAnalysis,
+                customCodeAndThirdParty: data.performance?.customCodeAndThirdParty || data.customCodeAnalysis,
+                publisherCode: data.performance?.publisherCode,
+                thirdPartyCode: data.performance?.thirdPartyCode,
+                highPriorityIssues: data.performance?.highPriorityIssues
+            };
+            
+            result.innerHTML = `
+                <!-- Overall Performance Score -->
+                <div class="text-center mb-8">
+                    <div class="text-6xl font-bold text-white mb-2">${performance.overallScore}%</div>
+                    <div class="text-blue-200 text-xl mb-4">Overall Performance Score</div>
+                    <button onclick="downloadAIPerformanceReport()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors mx-auto">
+                        📄 Download Comprehensive PDF Report
+                    </button>
+                </div>
+
+                <!-- Core Web Vitals -->
+                <div class="glass p-8 rounded-2xl mb-8">
+                    <h3 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+                        📊 Core Web Vitals
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                        <!-- LCP -->
+                        <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('lcp')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-blue-200 font-semibold">LCP</span>
+                                <span class="text-white font-bold">${performance.lcp || 0}ms</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                <div class="progress-bar" style="width: ${Math.min(100, Math.max(0, (4000 - (performance.lcp || 0)) / 40))}%"></div>
+                            </div>
+                            <div class="text-sm ${getVitalStatus(performance.coreWebVitals.lcp).color}">
+                                ${getVitalStatus(performance.coreWebVitals.lcp).text}
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">Click for detailed report</div>
+                        </div>
+
+                        <!-- CLS -->
+                        <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('cls')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-blue-200 font-semibold">CLS</span>
+                                <span class="text-white font-bold">${performance.cls || 0}</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                <div class="progress-bar" style="width: ${Math.min(100, Math.max(0, (0.25 - (performance.cls || 0)) / 0.25 * 100))}%"></div>
+                            </div>
+                            <div class="text-sm ${getVitalStatus(performance.coreWebVitals.cls).color}">
+                                ${getVitalStatus(performance.coreWebVitals.cls).text}
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">Click for detailed report</div>
+                        </div>
+
+                        <!-- FCP -->
+                        <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('fcp')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-blue-200 font-semibold">FCP</span>
+                                <span class="text-white font-bold">${performance.fcp || 0}ms</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                <div class="progress-bar" style="width: ${Math.min(100, Math.max(0, (3000 - (performance.fcp || 0)) / 30))}%"></div>
+                            </div>
+                            <div class="text-sm ${getVitalStatus(performance.coreWebVitals.fcp).color}">
+                                ${getVitalStatus(performance.coreWebVitals.fcp).text}
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">Click for detailed report</div>
+                        </div>
+
+                        <!-- FID -->
+                        <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('fid')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-blue-200 font-semibold">FID</span>
+                                <span class="text-white font-bold">${performance.fid || 0}ms</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                <div class="progress-bar" style="width: ${Math.min(100, Math.max(0, (300 - (performance.fid || 0)) / 3))}%"></div>
+                            </div>
+                            <div class="text-sm ${getVitalStatus(performance.coreWebVitals.fid).color}">
+                                ${getVitalStatus(performance.coreWebVitals.fid).text}
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">Click for detailed report</div>
+                        </div>
+
+                        <!-- INP -->
+                        <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('inp')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-blue-200 font-semibold">INP</span>
+                                <span class="text-white font-bold">${performance.inp || 0}ms</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                <div class="progress-bar" style="width: ${Math.min(100, Math.max(0, (500 - (performance.inp || 0)) / 5))}%"></div>
+                            </div>
+                            <div class="text-sm ${getVitalStatus(performance.coreWebVitals.inp).color}">
+                                ${getVitalStatus(performance.coreWebVitals.inp).text}
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">Click for detailed report</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Download AI Performance Report as PDF
+        function downloadAIPerformanceReport() {
+            if (!currentAnalysisData || !currentAnalysisData.performance) {
+                alert('No performance data available to download. Please analyze a website first.');
+                return;
+            }
+
+            // Create a new window for PDF generation
+            const printWindow = window.open('', '_blank');
+            const aiSuggestions = currentAnalysisData.performance.aiSuggestions;
+            const customCodeAnalysis = currentAnalysisData.performance.customCodeAndThirdParty || {};
+            const publisherCode = currentAnalysisData.performance.publisherCode;
+            const thirdPartyCode = currentAnalysisData.performance.thirdPartyCode;
+            const highPriorityIssues = currentAnalysisData.performance.highPriorityIssues;
+            const url = currentAnalysisData.url;
+            const timestamp = new Date().toLocaleString();
+
+            // Generate HTML content for PDF
+            const pdfContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Comprehensive Performance Analysis Report</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .metric-section {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .metric-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .metric-title {
+            margin: 0;
+            color: #333;
+            font-size: 1.8em;
+        }
+        .metric-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status-good { background: #d4edda; color: #155724; }
+        .status-needs-improvement { background: #fff3cd; color: #856404; }
+        .status-poor { background: #f8d7da; color: #721c24; }
+        .solution-item {
+            margin: 20px 0;
+            padding: 20px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .solution-header {
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        .solution-content {
+            margin-left: 20px;
+        }
+        .box-title {
+            font-weight: bold;
+            color: #495057;
+            margin: 10px 0 5px 0;
+        }
+        .box-content {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #dee2e6;
+        }
+        .code-box pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border: 1px solid #dee2e6;
+        }
+        .code-box code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        @media print {
+            body { margin: 0; padding: 15px; }
+            .metric-section { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Comprehensive Performance Analysis Report</h1>
+        <p><strong>Website:</strong> ${url}</p>
+        <p><strong>Generated:</strong> ${timestamp}</p>
+    </div>
+
+    <div class="metric-section">
+        <div class="metric-header">
+            <h2 class="metric-title">📊 Performance Summary</h2>
+            <span class="metric-status status-good">ANALYSIS COMPLETE</span>
+            <div style="margin-top: 10px;">
+                <strong>Overall Score:</strong> ${currentAnalysisData.overallScore}% | 
+                <strong>Data Source:</strong> ${currentAnalysisData.dataSource} | 
+                <strong>Analysis Time:</strong> ${currentAnalysisData.analysisTime}ms
+            </div>
+        </div>
+    </div>
+</body>
+</html>`;
+
+            // Write content to new window
+            printWindow.document.write(pdfContent);
+            printWindow.document.close();
+
+            // Wait for content to load, then trigger print dialog
+            printWindow.onload = function() {
+                setTimeout(() => {
+                    printWindow.print();
+                }, 500);
+            };
+        }
+
+        // Show metric modal
+        function showMetricReport(metric) {
+            alert('Detailed metric report for ' + metric + ' - Feature coming soon!');
+        }
+
+        // Allow Enter key to trigger analysis
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                analyze();
+            }
+        });
+
+        // Test if JavaScript is working
+        console.log('JavaScript loaded successfully');
+    </script>
+</body>
+</html>

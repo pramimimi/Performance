@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🤖 Quintype SEO Analyzer</title>
+    <title>⚡ Quintype Performance Analyzer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .milk-button {
@@ -22,31 +22,30 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        .ai-glow {
-            box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+        .progress-bar {
+            background: linear-gradient(90deg, #10b981, #34d399);
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.3s ease;
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 min-h-screen">
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
-        <header class="text-center mb-8">
-            <div class="flex items-center justify-center mb-4">
-                <svg class="w-12 h-12 mr-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
-                </svg>
-                <h1 class="text-5xl font-bold bg-gradient-to-r from-blue-400 to-white bg-clip-text text-transparent">
-                    🤖 SEO Analyzer
+        <header class="text-center mb-12">
+            <h1 class="text-5xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+                <span class="text-6xl">⚡</span>
+                Performance Analyzer
                 </h1>
-            </div>
-            <p class="text-blue-200 text-xl">Reliable AI-powered SEO analysis</p>
+            <p class="text-blue-200 text-xl">AI-powered website performance analysis</p>
         </header>
 
-        <!-- Analysis Section -->
-        <section class="glass p-8 rounded-2xl shadow-2xl mb-6 ai-glow">
-            <div class="text-center mb-6">
-                <h2 class="text-4xl font-bold text-white mb-2">🚀 AI-Powered Analysis</h2>
-                <p class="text-blue-200 text-lg">Enter any website URL to get comprehensive SEO insights</p>
+        <!-- Main Analysis Section -->
+        <section class="glass p-8 rounded-2xl mb-8">
+            <div class="text-center mb-8">
+                <h2 class="text-4xl font-bold text-white mb-2">🚀 Performance Analysis</h2>
+                <p class="text-blue-200 text-lg">Enter any website URL to get comprehensive performance insights</p>
             </div>
             
             <div class="flex gap-4 mb-6">
@@ -54,7 +53,6 @@
                     type="url" 
                     id="urlInput" 
                     placeholder="https://example.com" 
-                    value="https://www.esakal.com/"
                     class="flex-1 px-6 py-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 >
                 <button 
@@ -62,7 +60,7 @@
                     onclick="analyze()" 
                     class="milk-button px-8 py-4 rounded-xl font-bold text-lg flex items-center gap-2"
                 >
-                    <span>🤖</span> AI Analyze
+                    <span>⚡</span> Analyze Performance
                 </button>
             </div>
             
@@ -77,27 +75,83 @@
 
     <script>
         let isAnalyzing = false;
+        let currentAnalysisData = null;
+
+        // Helper function to get vital status from metric value
+        function getVitalStatusFromValue(value, metric) {
+            if (value === undefined || value === null) {
+                return { status: 'poor', color: 'text-red-400', text: 'Poor' };
+            }
+            
+            switch (metric) {
+                case 'lcp':
+                    if (value <= 2500) return { status: 'good', color: 'text-green-400', text: 'Good' };
+                    if (value <= 4000) return { status: 'needs-improvement', color: 'text-yellow-400', text: 'Needs Improvement' };
+                    return { status: 'poor', color: 'text-red-400', text: 'Poor' };
+                
+                case 'cls':
+                    if (value <= 0.1) return { status: 'good', color: 'text-green-400', text: 'Good' };
+                    if (value <= 0.25) return { status: 'needs-improvement', color: 'text-yellow-400', text: 'Needs Improvement' };
+                    return { status: 'poor', color: 'text-red-400', text: 'Poor' };
+                
+                case 'fcp':
+                    if (value <= 1800) return { status: 'good', color: 'text-green-400', text: 'Good' };
+                    if (value <= 3000) return { status: 'needs-improvement', color: 'text-yellow-400', text: 'Needs Improvement' };
+                    return { status: 'poor', color: 'text-red-400', text: 'Poor' };
+                
+                case 'fid':
+                    if (value <= 100) return { status: 'good', color: 'text-green-400', text: 'Good' };
+                    if (value <= 300) return { status: 'needs-improvement', color: 'text-yellow-400', text: 'Needs Improvement' };
+                    return { status: 'poor', color: 'text-red-400', text: 'Poor' };
+                
+                case 'inp':
+                    if (value <= 200) return { status: 'good', color: 'text-green-400', text: 'Good' };
+                    if (value <= 500) return { status: 'needs-improvement', color: 'text-yellow-400', text: 'Needs Improvement' };
+                    return { status: 'poor', color: 'text-red-400', text: 'Poor' };
+                
+                default:
+                    return { status: 'poor', color: 'text-red-400', text: 'Poor' };
+            }
+        }
+
+        function getVitalStatus(status) {
+            const statuses = {
+                'good': { text: 'Good', color: 'text-green-400' },
+                'needs-improvement': { text: 'Needs Improvement', color: 'text-yellow-400' },
+                'poor': { text: 'Poor', color: 'text-red-400' }
+            };
+            return statuses[status] || statuses['poor'];
+        }
 
         async function analyze() {
-            if (isAnalyzing) return;
+            console.log('=== ANALYZE FUNCTION CALLED ===');
+            
+            if (isAnalyzing) {
+                console.log('Already analyzing, returning');
+                return;
+            }
             
             const url = document.getElementById('urlInput').value.trim();
             const msg = document.getElementById('msg');
             const result = document.getElementById('result');
             const btn = document.getElementById('analyzeBtn');
             
+            console.log('URL:', url);
+            console.log('Elements found:', { msg, result, btn });
+            
             if (!url) {
+                console.log('No URL provided');
                 msg.textContent = 'Please enter a URL';
                 return;
             }
             
             isAnalyzing = true;
-            msg.textContent = '🤖 AI is analyzing your website... This may take 15-30 seconds';
+            msg.textContent = '⚡ Analyzing website performance... This may take 15-30 seconds';
             btn.disabled = true;
             btn.textContent = '🔄 Analyzing...';
             
             try {
-                console.log('Starting analysis for:', url);
+                console.log('Making API call to:', 'http://localhost:3000/analyze');
                 
                 const response = await fetch('http://localhost:3000/analyze', {
                     method: 'POST',
@@ -107,583 +161,713 @@
                     body: JSON.stringify({ url: url })
                 });
                 
+                console.log('Response received:', response.status);
+                
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
                 const data = await response.json();
-                console.log('Analysis completed:', data);
+                console.log('Data received:', data);
                 
-                msg.textContent = `✅ Analysis complete! Found ${data.seo.issues.length} SEO issues.`;
+                const issueCount = data.performanceCategories?.performanceIssues?.issues?.length || 
+                                 data.performanceCategories?.highPriorityIssues?.issues?.length || 0;
+                msg.textContent = `✅ Analysis complete! Found ${issueCount} performance issues.`;
+                console.log('Calling displayResults with data:', data);
                 displayResults(data);
                 
             } catch (error) {
-                console.error('Analysis failed:', error);
+                console.error('Error:', error);
+                
+                if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
+                    msg.textContent = '❌ Connection Error! Please start a web server.';
+                    alert('❌ Connection Error!\n\nPlease make sure:\n1. The backend server is running on port 3000\n2. You are accessing the frontend through a web server (not file://)\n\nTo fix this, run: python -m http.server 8000 in the frontend folder\nThen open: http://localhost:8000/stable-seo-analyzer.html');
+                } else {
                 msg.textContent = `❌ Analysis failed: ${error.message}`;
+                }
             } finally {
                 isAnalyzing = false;
                 btn.disabled = false;
-                btn.innerHTML = '<span>🤖</span> AI Analyze';
+                btn.textContent = '⚡ Analyze Performance';
             }
         }
 
-        // Global variable to store analysis data
-        let currentAnalysisData = null;
-
-        // Store analysis data when results are displayed
         function displayResults(data) {
-            currentAnalysisData = data; // Store for detailed views
+            console.log('displayResults called with data:', data);
+            currentAnalysisData = data;
             const result = document.getElementById('result');
-            result.className = 'block';
+            console.log('Result element found:', result);
+            result.classList.remove('hidden');
+            console.log('Hidden class removed from result element');
             
-            // Calculate overall score
-            const overallScore = Math.round((data.seo.score + data.performance.overallScore + data.crawl.score) / 3);
+            // Handle new API structure with proper fallbacks
+            const performance = {
+                overallScore: data.overallScore || 0,
+                lcp: data.coreWebVitals?.lcp || 0,
+                cls: data.coreWebVitals?.cls || 0,
+                fcp: data.coreWebVitals?.fcp || 0,
+                tti: data.coreWebVitals?.tti || 0,
+                tbt: data.coreWebVitals?.tbt || 0,
+                speedIndex: data.coreWebVitals?.speedIndex || 0,
+                fid: data.coreWebVitals?.fid || 0,
+                inp: data.coreWebVitals?.inp || 0,
+                issues: data.performanceCategories?.performanceIssues?.issues || [],
+                coreWebVitals: {
+                    lcp: getVitalStatusFromValue(data.coreWebVitals?.lcp, 'lcp').status,
+                    cls: getVitalStatusFromValue(data.coreWebVitals?.cls, 'cls').status,
+                    fcp: getVitalStatusFromValue(data.coreWebVitals?.fcp, 'fcp').status,
+                    fid: getVitalStatusFromValue(data.coreWebVitals?.fid, 'fid').status,
+                    inp: getVitalStatusFromValue(data.coreWebVitals?.inp, 'inp').status
+                },
+                // Add report data for downloadable PDF
+                aiSuggestions: data.performance?.aiSuggestions || data.aiAnalysis,
+                customCodeAndThirdParty: data.performance?.customCodeAndThirdParty || data.customCodeAnalysis,
+                publisherCode: data.performance?.publisherCode,
+                thirdPartyCode: data.performance?.thirdPartyCode,
+                highPriorityIssues: data.performance?.highPriorityIssues,
+                detailedAnalysis: data.detailedAnalysis || []
+            };
             
             result.innerHTML = `
-                <!-- Overall Score -->
+                <!-- Overall Performance Score -->
                 <div class="text-center mb-8">
-                    <div class="text-6xl font-bold text-white mb-2">${overallScore}%</div>
-                    <div class="text-blue-200 text-xl">Overall SEO Score</div>
+                    <div class="text-6xl font-bold text-white mb-2">${performance.overallScore}%</div>
+                    <div class="text-blue-200 text-xl mb-4">Overall Performance Score</div>
+                    <button onclick="downloadAIPerformanceReport()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors mx-auto">
+                        📄 Download Comprehensive PDF Report
+                    </button>
                 </div>
 
-                <!-- Score Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <!-- SEO Score Card -->
-                    <div class="glass p-6 rounded-2xl text-center cursor-pointer hover:scale-105 transition-transform" onclick="toggleSEODetails()">
-                        <div class="text-4xl font-bold text-white mb-2">${data.seo.score}%</div>
-                        <div class="text-blue-200 mb-3">SEO Score</div>
-                        <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
-                            <div class="bg-blue-500 h-2 rounded-full" style="width: ${data.seo.score}%"></div>
+                <!-- Core Web Vitals -->
+                <div class="glass p-8 rounded-2xl mb-8">
+                    <h3 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+                        📊 Core Web Vitals
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                        <!-- LCP -->
+                        <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('lcp')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-blue-200 font-semibold">LCP</span>
+                                <span class="text-white font-bold">${performance.lcp || 0}ms</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                <div class="progress-bar" style="width: ${Math.min(100, Math.max(0, (4000 - (performance.lcp || 0)) / 40))}%"></div>
+                            </div>
+                            <div class="text-sm ${getVitalStatus(performance.coreWebVitals.lcp).color}">
+                                ${getVitalStatus(performance.coreWebVitals.lcp).text}
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">Click for detailed report</div>
                         </div>
-                        <div class="text-blue-300 text-sm">Click for detailed breakdown</div>
-                    </div>
 
-                    <!-- Performance Score Card -->
-                    <div class="glass p-6 rounded-2xl text-center cursor-pointer hover:scale-105 transition-transform" onclick="togglePerformanceDetails()">
-                        <div class="text-4xl font-bold text-white mb-2">${data.performance.overallScore}%</div>
-                        <div class="text-blue-200 mb-3">Performance</div>
-                        <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
-                            <div class="bg-green-500 h-2 rounded-full" style="width: ${data.performance.overallScore}%"></div>
+                        <!-- CLS -->
+                        <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('cls')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-blue-200 font-semibold">CLS</span>
+                                <span class="text-white font-bold">${performance.cls || 0}</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                <div class="progress-bar" style="width: ${Math.min(100, Math.max(0, (0.25 - (performance.cls || 0)) / 0.25 * 100))}%"></div>
+                            </div>
+                            <div class="text-sm ${getVitalStatus(performance.coreWebVitals.cls).color}">
+                                ${getVitalStatus(performance.coreWebVitals.cls).text}
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">Click for detailed report</div>
                         </div>
-                        <div class="text-blue-300 text-sm">Click for Core Web Vitals</div>
-                    </div>
 
-                    <!-- Crawlability Score Card -->
-                    <div class="glass p-6 rounded-2xl text-center cursor-pointer hover:scale-105 transition-transform" onclick="toggleCrawlabilityDetails()">
-                        <div class="text-4xl font-bold text-white mb-2">${data.crawl.score}%</div>
-                        <div class="text-blue-200 mb-3">Crawlability</div>
-                        <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
-                            <div class="bg-purple-500 h-2 rounded-full" style="width: ${data.crawl.score}%"></div>
+                        <!-- FCP -->
+                        <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('fcp')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-blue-200 font-semibold">FCP</span>
+                                <span class="text-white font-bold">${performance.fcp || 0}ms</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                <div class="progress-bar" style="width: ${Math.min(100, Math.max(0, (3000 - (performance.fcp || 0)) / 30))}%"></div>
+                            </div>
+                            <div class="text-sm ${getVitalStatus(performance.coreWebVitals.fcp).color}">
+                                ${getVitalStatus(performance.coreWebVitals.fcp).text}
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">Click for detailed report</div>
                         </div>
-                        <div class="text-blue-300 text-sm">Click for crawlability report</div>
-                    </div>
-                </div>
 
-                <!-- SEO Analysis Section (Initially Hidden) -->
-                <div id="seoDetails" class="hidden mb-8">
-                    <div class="glass p-8 rounded-2xl">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-3xl font-bold text-white flex items-center gap-2">
-                                🔍 SEO Analysis
-                            </h3>
-                            <button onclick="downloadSEOReport()" class="milk-button px-4 py-2 rounded-lg font-semibold text-sm">
-                                📥 Download Report
-                            </button>
+                        <!-- FID -->
+                        <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('fid')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-blue-200 font-semibold">FID</span>
+                                <span class="text-white font-bold">${performance.fid || 0}ms</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                <div class="progress-bar" style="width: ${Math.min(100, Math.max(0, (300 - (performance.fid || 0)) / 3))}%"></div>
+                            </div>
+                            <div class="text-sm ${getVitalStatus(performance.coreWebVitals.fid).color}">
+                                ${getVitalStatus(performance.coreWebVitals.fid).text}
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">Click for detailed report</div>
                         </div>
-                        <div class="space-y-4">
-                            ${data.seo.issues.map((issue, index) => `
-                                <div class="bg-white/5 p-6 rounded-xl border border-white/10">
-                                    <div class="flex items-start justify-between">
-                                        <div class="flex-1">
-                                            <div class="flex items-center gap-3 mb-2">
-                                                <span class="px-3 py-1 rounded-full text-sm font-semibold ${getSeverityLevel(issue.severity).class}">
-                                                    ${getSeverityLevel(issue.severity).icon} ${getSeverityLevel(issue.severity).label}
-                                                </span>
-                                                <span class="px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-300">${getSEOCategory(issue.key)}</span>
+
+                        <!-- INP -->
+                        <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('inp')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-blue-200 font-semibold">INP</span>
+                                <span class="text-white font-bold">${performance.inp || 0}ms</span>
+                            </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                <div class="progress-bar" style="width: ${Math.min(100, Math.max(0, (500 - (performance.inp || 0)) / 5))}%"></div>
+                            </div>
+                            <div class="text-sm ${getVitalStatus(performance.coreWebVitals.inp).color}">
+                                ${getVitalStatus(performance.coreWebVitals.inp).text}
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">Click for detailed report</div>
+                        </div>
+                                </div>
+                            </div>
+
+                            <!-- Detailed Analysis Sections -->
+                            ${performance.detailedAnalysis && performance.detailedAnalysis.length > 0 ? `
+                                <div class="glass p-8 rounded-2xl mb-8">
+                                    <h3 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+                                        🔍 Comprehensive Analysis Report
+                                    </h3>
+                                    <div class="space-y-6">
+                                        ${performance.detailedAnalysis.map(section => `
+                                            <div class="bg-white/5 p-6 rounded-xl">
+                                                <div class="flex items-center justify-between mb-4">
+                                                    <h4 class="text-xl font-bold text-white">${section.title}</h4>
+                                                    <span class="px-3 py-1 rounded-full text-sm font-medium ${
+                                                        section.status === 'good' ? 'bg-green-500/20 text-green-400' :
+                                                        section.status === 'needs-improvement' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                        section.status === 'poor' ? 'bg-red-500/20 text-red-400' :
+                                                        'bg-blue-500/20 text-blue-400'
+                                                    }">
+                                                        ${section.status === 'good' ? 'GOOD' :
+                                                          section.status === 'needs-improvement' ? 'NEEDS IMPROVEMENT' :
+                                                          section.status === 'poor' ? 'POOR' :
+                                                          section.status.toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                    <div class="text-blue-200">
+                                                        <strong>Current Value:</strong> ${section.currentValue}
+                                                    </div>
+                                                    <div class="text-blue-200">
+                                                        <strong>Target Value:</strong> ${section.targetValue}
+                                                    </div>
+                                                </div>
+                                                
+                                                <p class="text-gray-300 mb-4">${section.description}</p>
+                                                <p class="text-sm font-medium ${
+                                                    section.impact.includes('High') ? 'text-red-400' :
+                                                    section.impact.includes('Medium') ? 'text-yellow-400' : 'text-green-400'
+                                                }">
+                                                    Impact: ${section.impact}
+                                                </p>
+                                                
+                                                <!-- Analysis Sections -->
+                                                <div class="mt-6 space-y-4">
+                                                    <!-- Key Factor -->
+                                                    <div class="p-4 border-l-4 border-red-500 bg-red-500/10 rounded-r-lg">
+                                                        <div class="flex items-center mb-2">
+                                                            <span class="text-xl mr-2">🔑</span>
+                                                            <h5 class="font-bold text-white">Key Factor:</h5>
+                                                        </div>
+                                                        <p class="text-gray-300">${section.keyFactor}</p>
+                                                    </div>
+                                                    
+                                                    <!-- Root Cause -->
+                                                    <div class="p-4 border-l-4 border-orange-500 bg-orange-500/10 rounded-r-lg">
+                                                        <div class="flex items-center mb-2">
+                                                            <span class="text-xl mr-2">🔍</span>
+                                                            <h5 class="font-bold text-white">Root Cause:</h5>
+                                                        </div>
+                                                        <p class="text-gray-300">${section.rootCause}</p>
+                                                    </div>
+                                                    
+                                                    <!-- Specific Solution -->
+                                                    <div class="p-4 border-l-4 border-green-500 bg-green-500/10 rounded-r-lg">
+                                                        <div class="flex items-center mb-2">
+                                                            <span class="text-xl mr-2">✅</span>
+                                                            <h5 class="font-bold text-white">Specific Solution:</h5>
+                                                        </div>
+                                                        <p class="text-gray-300">${section.specificSolution}</p>
+                                                    </div>
+                                                    
+                                                    <!-- Recommendation -->
+                                                    <div class="p-4 border-l-4 border-blue-500 bg-blue-500/10 rounded-r-lg">
+                                                        <div class="flex items-center mb-2">
+                                                            <span class="text-xl mr-2">💡</span>
+                                                            <h5 class="font-bold text-white">Recommendation:</h5>
+                                                        </div>
+                                                        <p class="text-gray-300">${section.recommendation}</p>
+                                                    </div>
+                                                    
+                                                    <!-- Custom Code Solution -->
+                                                    <div class="p-4 border-l-4 border-purple-500 bg-purple-500/10 rounded-r-lg">
+                                                        <div class="flex items-center mb-2">
+                                                            <span class="text-xl mr-2">⚙️</span>
+                                                            <h5 class="font-bold text-white">Custom Code Solution:</h5>
+                                                        </div>
+                                                        <div class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto mt-2">
+                                                            <pre><code>${section.customCodeSolution}</code></pre>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <h4 class="text-xl font-bold text-white mb-2">${issue.message}</h4>
-                                            <p class="text-blue-200 mb-3">${issue.explanation}</p>
-                                            <div class="bg-white/5 p-3 rounded-lg mb-3">
-                                                <p class="text-sm text-blue-300 mb-1"><strong>Fix:</strong> ${issue.fix}</p>
-                                            </div>
-                                        </div>
-                                        <button onclick="openSolutionPage('seo', '${issue.key}', ${index})" 
-                                                class="milk-button px-4 py-2 rounded-lg font-semibold text-sm">
-                                            AI Fix
-                                        </button>
+                                        `).join('')}
                                     </div>
                                 </div>
-                            `).join('')}
-                        </div>
+                            ` : ''}
+            `;
+        }
+
+        // Download AI Performance Report as PDF
+        function downloadAIPerformanceReport() {
+            if (!currentAnalysisData || !currentAnalysisData.performance) {
+                alert('No performance data available to download. Please analyze a website first.');
+                return;
+            }
+
+            // Create a new window for PDF generation
+            const printWindow = window.open('', '_blank');
+            const data = currentAnalysisData;
+            const url = data.url || 'Unknown URL';
+            const timestamp = new Date(data.timestamp || Date.now()).toLocaleString();
+            
+            // Debug AI analysis data
+            console.log('AI Analysis data:', data.aiAnalysis);
+            console.log('AI Analysis type:', typeof data.aiAnalysis);
+
+            // Generate HTML content for PDF matching shared images format
+            const pdfContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI Performance Suggestions Report</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .metric-section {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .metric-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .metric-title {
+            margin: 0;
+            color: #333;
+            font-size: 1.8em;
+        }
+        .metric-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status-good { background: #d4edda; color: #155724; }
+        .status-needs-improvement { background: #fff3cd; color: #856404; }
+        .status-poor { background: #f8d7da; color: #721c24; }
+        .status-high-impact { background: #f8d7da; color: #721c24; }
+        
+        /* Analysis sections matching shared images */
+        .analysis-section {
+            margin: 20px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .analysis-header {
+            padding: 15px 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .analysis-content {
+            padding: 15px 20px;
+            background: white;
+        }
+        .key-factor { background: #ffebee; border-left: 4px solid #f44336; }
+        .root-cause { background: #fff3e0; border-left: 4px solid #ff9800; }
+        .specific-solution { background: #e8f5e8; border-left: 4px solid #4caf50; }
+        .recommendation { background: #e3f2fd; border-left: 4px solid #2196f3; }
+        .custom-code { background: #f3e5f5; border-left: 4px solid #9c27b0; }
+        
+        .code-block {
+            background: #2d3748;
+            color: #68d391;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+        .code-block pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+        
+        .performance-metric {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+        }
+        .metric-values {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .impact-text {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .impact-high { color: #dc3545; }
+        .impact-medium { color: #ffc107; }
+        .impact-low { color: #28a745; }
+        
+        /* AI Insights styling */
+        .ai-insights {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+            margin: 20px 0;
+        }
+        .ai-insights h2 {
+            color: #007bff;
+            margin-bottom: 15px;
+        }
+        .ai-insights h3 {
+            color: #495057;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        .ai-insights h4 {
+            color: #6c757d;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+        .ai-insights code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .ai-insights pre {
+            background: #2d3748;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        @media print {
+            body { margin: 0; padding: 15px; }
+            .metric-section { page-break-inside: avoid; }
+            .analysis-section { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 AI Performance Suggestions Report</h1>
+        <p><strong>Website:</strong> ${url}</p>
+        <p><strong>Generated:</strong> ${timestamp}</p>
+    </div>
+
+    <!-- Performance Summary -->
+    <div class="metric-section">
+        <div class="metric-header">
+            <h2 class="metric-title">Performance Summary</h2>
+            <span class="metric-status status-good">ANALYSIS COMPLETE</span>
+        </div>
+        <div class="analysis-content">
+            <p><strong>Overall Score:</strong> ${data.performance?.overallScore || data.overallScore || 0}% | <strong>Data Source:</strong> ${data.dataSource || 'PageSpeed API'} | <strong>Analysis Time:</strong> ${data.analysisTime || 0}ms</p>
+        </div>
+    </div>
+
+    ${data.detailedAnalysis && data.detailedAnalysis.length > 0 ? data.detailedAnalysis.map(section => `
+        <!-- ${section.metric} Analysis -->
+        <div class="metric-section">
+            <div class="metric-header">
+                <h2 class="metric-title">${section.title}</h2>
+                <span class="metric-status ${section.status === 'good' ? 'status-good' : section.status === 'needs-improvement' ? 'status-needs-improvement' : section.status === 'poor' ? 'status-poor' : 'status-high-impact'}">
+                    ${section.status === 'good' ? 'GOOD' : section.status === 'needs-improvement' ? 'NEEDS-IMPROVEMENT' : section.status === 'poor' ? 'POOR' : section.status.toUpperCase()}
+                </span>
+            </div>
+            
+            <div class="performance-metric">
+                <div class="metric-values">
+                    <span>Current Value: ${section.currentValue}</span>
+                    <span>Target Value: ${section.targetValue}</span>
+                </div>
+                <p>${section.description}</p>
+                <p class="impact-text ${section.impact.includes('High') ? 'impact-high' : section.impact.includes('Medium') ? 'impact-medium' : 'impact-low'}">
+                    Impact: ${section.impact}
+                </p>
+            </div>
+
+            <!-- Key Factor -->
+            <div class="analysis-section key-factor">
+                <div class="analysis-header">
+                    <span>🔑</span>
+                    <span>Key Factor:</span>
+                </div>
+                <div class="analysis-content">
+                    <p>${section.keyFactor}</p>
+                </div>
+            </div>
+
+            <!-- Root Cause -->
+            <div class="analysis-section root-cause">
+                <div class="analysis-header">
+                    <span>🔍</span>
+                    <span>Root Cause:</span>
+                </div>
+                <div class="analysis-content">
+                    <p>${section.rootCause}</p>
+                </div>
+            </div>
+
+            <!-- Specific Solution -->
+            <div class="analysis-section specific-solution">
+                <div class="analysis-header">
+                    <span>✅</span>
+                    <span>Specific Solution:</span>
+                </div>
+                <div class="analysis-content">
+                    <p>${section.specificSolution}</p>
+                </div>
+            </div>
+
+            <!-- Recommendation -->
+            <div class="analysis-section recommendation">
+                <div class="analysis-header">
+                    <span>💡</span>
+                    <span>Recommendation:</span>
+                </div>
+                <div class="analysis-content">
+                    <p>${section.recommendation}</p>
+                </div>
+            </div>
+
+            <!-- Custom Code Solution -->
+            <div class="analysis-section custom-code">
+                <div class="analysis-header">
+                    <span>⚙️</span>
+                    <span>Custom Code Solution:</span>
+                </div>
+                <div class="analysis-content">
+                    <div class="code-block">
+                        <pre><code>${section.customCodeSolution}</code></pre>
                     </div>
                 </div>
+            </div>
+        </div>
+    `).join('') : ''}
 
-                <!-- Performance Analysis Section (Initially Hidden) -->
-                <div id="performanceDetails" class="hidden mb-8">
-                    <div class="glass p-8 rounded-2xl">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-3xl font-bold text-white flex items-center gap-2">
-                                ⚡ Performance Analysis
-                            </h3>
-                            <button onclick="downloadPerformanceReport()" class="milk-button px-4 py-2 rounded-lg font-semibold text-sm">
-                                📥 Download Report
-                            </button>
-                        </div>
-                        
-                        <!-- Core Web Vitals -->
-                        <div class="mb-8">
-                            <h4 class="text-2xl font-bold text-white mb-4">🎯 Core Web Vitals</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                ${generateCoreWebVitalsCard('LCP', data.performance.lcp, 'Largest Contentful Paint', data.performance.coreWebVitals?.lcp)}
-                                ${generateCoreWebVitalsCard('CLS', data.performance.cls, 'Cumulative Layout Shift', data.performance.coreWebVitals?.cls)}
-                                ${generateCoreWebVitalsCard('FCP', data.performance.fcp, 'First Contentful Paint', data.performance.coreWebVitals?.fcp)}
+    <!-- Additional AI Analysis if available -->
+    ${data.aiAnalysis ? `
+        <div class="metric-section ai-insights">
+            <h2>🤖 Additional AI Insights</h2>
+            <div style="white-space: pre-line; font-family: 'Segoe UI', sans-serif; line-height: 1.6;">
+                ${typeof data.aiAnalysis === 'string' ? data.aiAnalysis : (data.aiAnalysis.summary || JSON.stringify(data.aiAnalysis))}
+            </div>
+        </div>
+    ` : `
+        <div class="metric-section ai-insights">
+            <h2>🤖 Additional AI Insights</h2>
+            <div style="white-space: pre-line; font-family: 'Segoe UI', sans-serif; line-height: 1.6;">
+                <h3>🎯 Performance Assessment</h3>
+                <p>Based on the performance metrics analyzed, here are key insights for improving your website's performance:</p>
+                
+                <h3>⚡ Quick Wins (1-2 hours implementation)</h3>
+                <ul>
+                    <li><strong>Enable Gzip/Brotli Compression</strong> - Reduce file sizes by 60-80%</li>
+                    <li><strong>Add Image Dimensions</strong> - Prevent layout shifts</li>
+                    <li><strong>Minify CSS/JS</strong> - Reduce file sizes by 30-50%</li>
+                    <li><strong>Remove Unused CSS/JS</strong> - Eliminate dead code</li>
+                    <li><strong>Optimize Images</strong> - Convert to WebP/AVIF format</li>
+                </ul>
+                
+                <h3>🚀 Medium-term Optimizations (1-2 weeks)</h3>
+                <ul>
+                    <li><strong>Implement Critical CSS</strong> - Inline above-the-fold styles</li>
+                    <li><strong>Lazy Load Images</strong> - Defer below-the-fold images</li>
+                    <li><strong>Optimize Third-party Scripts</strong> - Load asynchronously</li>
+                    <li><strong>Implement Service Worker</strong> - Cache resources</li>
+                    <li><strong>Database Query Optimization</strong> - Improve server response times</li>
+                </ul>
+                
+                <h3>🎯 Long-term Strategic Improvements (1-3 months)</h3>
+                <ul>
+                    <li><strong>CDN Implementation</strong> - Distribute content globally</li>
+                    <li><strong>Code Splitting</strong> - Load only necessary code</li>
+                    <li><strong>Progressive Web App (PWA)</strong> - Enhanced user experience</li>
+                    <li><strong>Advanced Caching Strategy</strong> - Multi-layer caching</li>
+                    <li><strong>Performance Monitoring</strong> - Continuous optimization</li>
+                </ul>
+                
+                <h3>📊 Expected Results</h3>
+                <ul>
+                    <li><strong>Quick Wins:</strong> +10-20% performance score improvement</li>
+                    <li><strong>Medium-term:</strong> +20-35% performance score improvement</li>
+                    <li><strong>Long-term:</strong> +35-50% performance score improvement</li>
+                    <li><strong>Core Web Vitals:</strong> All metrics should reach "Good" thresholds</li>
+                </ul>
+            </div>
+        </div>
+    `}
+</body>
+</html>`;
+
+            // Write content to new window
+            printWindow.document.write(pdfContent);
+            printWindow.document.close();
+
+            // Wait for content to load, then trigger print dialog
+            printWindow.onload = function() {
+                setTimeout(() => {
+                    printWindow.print();
+                }, 500);
+            };
+        }
+
+        // Show metric modal with comprehensive analysis
+        function showMetricReport(metric) {
+            if (!currentAnalysisData || !currentAnalysisData.detailedAnalysis) {
+                alert('No detailed analysis data available. Please run the analysis first.');
+                return;
+            }
+
+            // Find the analysis section for this metric
+            const analysisSection = currentAnalysisData.detailedAnalysis.find(section => 
+                section.metric.toLowerCase() === metric.toLowerCase()
+            );
+
+            if (!analysisSection) {
+                alert(`No detailed analysis available for ${metric.toUpperCase()}. This metric may be performing well.`);
+                return;
+            }
+
+            // Create modal content
+            const modalContent = `
+                <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h2 class="text-2xl font-bold text-gray-800">${analysisSection.title}</h2>
+                                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
                             </div>
-                        </div>
-
-                        <!-- Performance Issues -->
-                        <div class="mb-8">
-                            <h4 class="text-2xl font-bold text-white mb-4">🚨 Performance Issues</h4>
-                            <div class="space-y-4">
-                                ${data.performance.issues && data.performance.issues.length > 0 ? 
-                                    data.performance.issues.map(issue => generatePerformanceIssueCard(issue)).join('') :
-                                    '<div class="bg-green-500/20 p-4 rounded-xl border border-green-500/30"><p class="text-green-300">✅ No performance issues detected!</p></div>'
-                                }
-                            </div>
-                        </div>
-
-                        <!-- Optimization Opportunities -->
-                        <div class="mb-8">
-                            <h4 class="text-2xl font-bold text-white mb-4">💡 Optimization Opportunities</h4>
-                            <div class="space-y-4">
-                                ${generateOptimizationOpportunities(data.performance)}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Crawlability Analysis Section (Initially Hidden) -->
-                <div id="crawlabilityDetails" class="hidden mb-8">
-                    <div class="glass p-8 rounded-2xl">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-3xl font-bold text-white flex items-center gap-2">
-                                🕷️ Crawlability Analysis
-                            </h3>
-                            <button onclick="downloadCrawlabilityReport()" class="milk-button px-4 py-2 rounded-lg font-semibold text-sm">
-                                📥 Download Report
-                            </button>
-                        </div>
-                        <div class="space-y-4">
-                            ${data.crawl.details.map((detail, index) => `
-                                <div class="bg-white/5 p-6 rounded-xl border border-white/10">
-                                    <div class="flex items-start justify-between">
-                                        <div class="flex-1">
-                                            <div class="flex items-center gap-3 mb-2">
-                                                <span class="px-3 py-1 rounded-full text-sm font-semibold ${detail.ok ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'}">
-                                                    ${detail.ok ? '🟢 PASS' : '🟠 ISSUE'}
-                                                </span>
-                                                <span class="px-2 py-1 rounded text-xs bg-purple-500/20 text-purple-300">${getCrawlabilityCategory(detail.key)}</span>
-                                            </div>
-                                            <h4 class="text-xl font-bold text-white mb-2">${detail.message}</h4>
-                                            <p class="text-blue-200 mb-3">${detail.impact}</p>
-                                            <div class="bg-white/5 p-3 rounded-lg mb-3">
-                                                <p class="text-sm text-blue-300 mb-1"><strong>Fix:</strong> ${detail.fix}</p>
-                                            </div>
-                                        </div>
-                                        <button onclick="openSolutionPage('crawlability', '${detail.key}', ${index})" 
-                                                class="milk-button px-4 py-2 rounded-lg font-semibold text-sm">
-                                            AI Fix
-                                        </button>
-                                    </div>
+                            
+                            <!-- Status and Values -->
+                            <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-lg font-semibold">Current Value: ${analysisSection.currentValue}</span>
+                                    <span class="text-lg font-semibold">Target Value: ${analysisSection.targetValue}</span>
                                 </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Toggle functions for score card details
-        function toggleSEODetails() {
-            const seoDetails = document.getElementById('seoDetails');
-            const performanceDetails = document.getElementById('performanceDetails');
-            const crawlabilityDetails = document.getElementById('crawlabilityDetails');
-            
-            // Hide other sections
-            performanceDetails.classList.add('hidden');
-            crawlabilityDetails.classList.add('hidden');
-            
-            // Toggle SEO details
-            if (seoDetails.classList.contains('hidden')) {
-                seoDetails.classList.remove('hidden');
-                seoDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else {
-                seoDetails.classList.add('hidden');
-            }
-        }
-
-        function togglePerformanceDetails() {
-            const seoDetails = document.getElementById('seoDetails');
-            const performanceDetails = document.getElementById('performanceDetails');
-            const crawlabilityDetails = document.getElementById('crawlabilityDetails');
-            
-            // Hide other sections
-            seoDetails.classList.add('hidden');
-            crawlabilityDetails.classList.add('hidden');
-            
-            // Toggle Performance details
-            if (performanceDetails.classList.contains('hidden')) {
-                performanceDetails.classList.remove('hidden');
-                performanceDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else {
-                performanceDetails.classList.add('hidden');
-            }
-        }
-
-        function toggleCrawlabilityDetails() {
-            const seoDetails = document.getElementById('seoDetails');
-            const performanceDetails = document.getElementById('performanceDetails');
-            const crawlabilityDetails = document.getElementById('crawlabilityDetails');
-            
-            // Hide other sections
-            seoDetails.classList.add('hidden');
-            performanceDetails.classList.add('hidden');
-            
-            // Toggle Crawlability details
-            if (crawlabilityDetails.classList.contains('hidden')) {
-                crawlabilityDetails.classList.remove('hidden');
-                crawlabilityDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else {
-                crawlabilityDetails.classList.add('hidden');
-            }
-        }
-
-        // Download report functions
-        function downloadSEOReport() {
-            if (!currentAnalysisData) return;
-            
-            const data = currentAnalysisData;
-            const report = {
-                url: data.url,
-                timestamp: data.timestamp,
-                seo: {
-                    score: data.seo.score,
-                    issues: data.seo.issues,
-                    analysis: data.seo.analysis
-                }
-            };
-            
-            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `seo-report-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        function downloadPerformanceReport() {
-            if (!currentAnalysisData) return;
-            
-            const data = currentAnalysisData;
-            const report = {
-                url: data.url,
-                timestamp: data.timestamp,
-                performance: {
-                    overallScore: data.performance.overallScore,
-                    lcp: data.performance.lcp,
-                    cls: data.performance.cls,
-                    fcp: data.performance.fcp,
-                    tti: data.performance.tti,
-                    tbt: data.performance.tbt,
-                    speedIndex: data.performance.speedIndex,
-                    coreWebVitals: data.performance.coreWebVitals,
-                    issues: data.performance.issues
-                }
-            };
-            
-            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `performance-report-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        function downloadCrawlabilityReport() {
-            if (!currentAnalysisData) return;
-            
-            const data = currentAnalysisData;
-            const report = {
-                url: data.url,
-                timestamp: data.timestamp,
-                crawl: {
-                    score: data.crawl.score,
-                    details: data.crawl.details
-                }
-            };
-            
-            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `crawlability-report-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-
-
-        function generateCoreWebVitalsCard(metric, value, description, status) {
-            const statusColors = {
-                'good': 'bg-green-500',
-                'needs-improvement': 'bg-yellow-500', 
-                'poor': 'bg-red-500'
-            };
-            const statusIcons = {
-                'good': '✅',
-                'needs-improvement': '⚠️',
-                'poor': '❌'
-            };
-            const statusText = {
-                'good': 'Good',
-                'needs-improvement': 'Needs Improvement',
-                'poor': 'Poor'
-            };
-            
-            const color = statusColors[status] || 'bg-gray-500';
-            const icon = statusIcons[status] || '❓';
-            const text = statusText[status] || 'Unknown';
-            
-            return `
-                <div class="bg-white/5 p-6 rounded-xl border border-white/10">
-                    <div class="flex items-center justify-between mb-3">
-                        <h5 class="text-lg font-semibold text-white">${metric}</h5>
-                        <span class="px-3 py-1 rounded-full text-sm font-semibold ${color} text-white">
-                            ${icon} ${text}
-                        </span>
-                    </div>
-                    <div class="text-3xl font-bold text-white mb-2">${typeof value === 'number' ? value.toLocaleString() : value}</div>
-                    <p class="text-blue-200 text-sm">${description}</p>
-                    ${getCoreWebVitalsThreshold(metric, value)}
-                </div>
-            `;
-        }
-
-        function generateMetricCard(metric, value, description, unit) {
-            return `
-                <div class="bg-white/5 p-4 rounded-xl border border-white/10">
-                    <h5 class="text-lg font-semibold text-white mb-2">${metric}</h5>
-                    <div class="text-2xl font-bold text-white mb-2">${typeof value === 'number' ? value.toLocaleString() : value}${unit}</div>
-                    <p class="text-blue-200 text-sm">${description}</p>
-                </div>
-            `;
-        }
-
-        function generatePerformanceIssueCard(issue) {
-            const severityColors = {
-                'critical': 'bg-red-500',
-                'warning': 'bg-yellow-500',
-                'info': 'bg-blue-500'
-            };
-            const severityIcons = {
-                'critical': '🔴',
-                'warning': '🟠',
-                'info': '🔵'
-            };
-            
-            const color = severityColors[issue.severity] || 'bg-gray-500';
-            const icon = severityIcons[issue.severity] || '❓';
-            
-            return `
-                <div class="bg-white/5 p-6 rounded-xl border border-white/10">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-3 mb-3">
-                                <span class="px-3 py-1 rounded-full text-sm font-semibold ${color} text-white">
-                                    ${icon} ${issue.severity.toUpperCase()}
-                                </span>
-                                <span class="px-2 py-1 rounded text-xs bg-orange-500/20 text-orange-300">${issue.key.toUpperCase()}</span>
+                                <div class="text-sm text-gray-600 mb-2">${analysisSection.description}</div>
+                                <div class="text-sm font-medium ${analysisSection.impact.includes('High') ? 'text-red-600' : analysisSection.impact.includes('Medium') ? 'text-yellow-600' : 'text-green-600'}">
+                                    Impact: ${analysisSection.impact}
+                                </div>
                             </div>
-                            <h5 class="text-xl font-bold text-white mb-2">${issue.message}</h5>
-                            <p class="text-blue-200 mb-3">${issue.explanation}</p>
-                            <div class="bg-white/5 p-3 rounded-lg mb-3">
-                                <p class="text-sm text-blue-300 mb-1"><strong>Fix:</strong> ${issue.fix}</p>
+
+                            <!-- Key Factor -->
+                            <div class="mb-4 p-4 border-l-4 border-red-500 bg-red-50 rounded-r-lg">
+                                <div class="flex items-center mb-2">
+                                    <span class="text-2xl mr-2">🔑</span>
+                                    <h3 class="text-lg font-bold text-gray-800">Key Factor:</h3>
+                                </div>
+                                <p class="text-gray-700">${analysisSection.keyFactor}</p>
                             </div>
-                            <div class="bg-red-500/10 p-3 rounded-lg mb-3">
-                                <p class="text-sm text-red-300"><strong>Impact:</strong> ${issue.impact}</p>
+
+                            <!-- Root Cause -->
+                            <div class="mb-4 p-4 border-l-4 border-orange-500 bg-orange-50 rounded-r-lg">
+                                <div class="flex items-center mb-2">
+                                    <span class="text-2xl mr-2">🔍</span>
+                                    <h3 class="text-lg font-bold text-gray-800">Root Cause:</h3>
+                                </div>
+                                <p class="text-gray-700">${analysisSection.rootCause}</p>
+                            </div>
+
+                            <!-- Specific Solution -->
+                            <div class="mb-4 p-4 border-l-4 border-green-500 bg-green-50 rounded-r-lg">
+                                <div class="flex items-center mb-2">
+                                    <span class="text-2xl mr-2">✅</span>
+                                    <h3 class="text-lg font-bold text-gray-800">Specific Solution:</h3>
+                                </div>
+                                <p class="text-gray-700">${analysisSection.specificSolution}</p>
+                            </div>
+
+                            <!-- Recommendation -->
+                            <div class="mb-4 p-4 border-l-4 border-blue-500 bg-blue-50 rounded-r-lg">
+                                <div class="flex items-center mb-2">
+                                    <span class="text-2xl mr-2">💡</span>
+                                    <h3 class="text-lg font-bold text-gray-800">Recommendation:</h3>
+                                </div>
+                                <p class="text-gray-700">${analysisSection.recommendation}</p>
+                            </div>
+
+                            <!-- Custom Code Solution -->
+                            <div class="mb-4 p-4 border-l-4 border-purple-500 bg-purple-50 rounded-r-lg">
+                                <div class="flex items-center mb-2">
+                                    <span class="text-2xl mr-2">⚙️</span>
+                                    <h3 class="text-lg font-bold text-gray-800">Custom Code Solution:</h3>
+                                </div>
+                                <div class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto">
+                                    <pre><code>${analysisSection.customCodeSolution}</code></pre>
+                                </div>
                             </div>
                         </div>
-                        <button onclick="openSolutionPage('performance', '${issue.key}', 0)" 
-                                class="milk-button px-4 py-2 rounded-lg font-semibold text-sm">
-                            AI Fix
-                        </button>
                     </div>
                 </div>
             `;
+
+            // Add modal to page
+            document.body.insertAdjacentHTML('beforeend', modalContent);
         }
 
-        function generateOptimizationOpportunities(performance) {
-            const opportunities = [];
-            
-            // LCP Opportunities
-            if (performance.lcp > 2500) {
-                opportunities.push({
-                    title: 'Optimize Largest Contentful Paint',
-                    description: 'Reduce LCP by optimizing images and server response time',
-                    impact: 'Can improve LCP by 2-4 seconds',
-                    category: 'Loading Performance'
-                });
-            }
-            
-            // CLS Opportunities
-            if (performance.cls > 0.1) {
-                opportunities.push({
-                    title: 'Reduce Cumulative Layout Shift',
-                    description: 'Set explicit dimensions for images and avoid dynamic content insertion',
-                    impact: 'Can improve CLS score significantly',
-                    category: 'Visual Stability'
-                });
-            }
-            
-            // FCP Opportunities
-            if (performance.fcp > 1800) {
-                opportunities.push({
-                    title: 'Improve First Contentful Paint',
-                    description: 'Minimize render-blocking resources and optimize CSS',
-                    impact: 'Can improve FCP by 500-1000ms',
-                    category: 'First Paint'
-                });
-            }
-            
-            // TTI Opportunities
-            if (performance.tti > 3800) {
-                opportunities.push({
-                    title: 'Reduce Time to Interactive',
-                    description: 'Minimize JavaScript execution time and defer non-critical scripts',
-                    impact: 'Can improve TTI by 1-2 seconds',
-                    category: 'Interactivity'
-                });
-            }
-            
-            if (opportunities.length === 0) {
-                return '<div class="bg-green-500/20 p-4 rounded-xl border border-green-500/30"><p class="text-green-300">✅ No optimization opportunities identified!</p></div>';
-            }
-            
-            return opportunities.map(opp => `
-                <div class="bg-white/5 p-4 rounded-xl border border-white/10">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-3 mb-2">
-                                <h5 class="text-lg font-semibold text-white">${opp.title}</h5>
-                                <span class="px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-300">${opp.category}</span>
-                            </div>
-                            <p class="text-blue-200 mb-2">${opp.description}</p>
-                            <p class="text-green-300 text-sm"><strong>Potential Impact:</strong> ${opp.impact}</p>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function getCoreWebVitalsThreshold(metric, value) {
-            const thresholds = {
-                'LCP': { good: 2500, poor: 4000 },
-                'CLS': { good: 0.1, poor: 0.25 },
-                'FCP': { good: 1800, poor: 3000 }
-            };
-            
-            const threshold = thresholds[metric];
-            if (!threshold) return '';
-            
-            const status = value <= threshold.good ? 'good' : value <= threshold.poor ? 'needs-improvement' : 'poor';
-            const color = status === 'good' ? 'text-green-300' : status === 'needs-improvement' ? 'text-yellow-300' : 'text-red-300';
-            
-            return `<p class="text-sm ${color} mt-2">Threshold: ${threshold.good}${metric === 'CLS' ? '' : 'ms'} (Good), ${threshold.poor}${metric === 'CLS' ? '' : 'ms'} (Poor)</p>`;
-        }
-
-
-
-
-
-        function getSeverityLevel(severity) {
-            switch(severity) {
-                case 'critical':
-                case 'high':
-                    return {icon: '🔴', label: 'HIGH', class: 'bg-red-500 text-white'};
-                case 'medium':
-                case 'warning':
-                    return {icon: '🟠', label: 'MEDIUM', class: 'bg-orange-500 text-white'};
-                case 'low':
-                default:
-                    return {icon: '🟢', label: 'LOW', class: 'bg-green-500 text-white'};
+        // Close modal function
+        function closeModal() {
+            const modal = document.querySelector('.fixed.inset-0');
+            if (modal) {
+                modal.remove();
             }
         }
-
-        function getSEOCategory(key) {
-            const categories = {
-                'title_too_short': 'Metadata',
-                'title_too_long': 'Metadata',
-                'missing_meta_description': 'Metadata',
-                'meta_description_too_long': 'Metadata',
-                'missing_canonical': 'Canonical',
-                'incomplete_open_graph': 'Schema',
-                'missing_structured_data': 'Schema',
-                'missing_h1': 'Metadata',
-                'multiple_h1': 'Metadata'
-            };
-            return categories[key] || 'SEO';
-        }
-
-        function getCrawlabilityCategory(key) {
-            const categories = {
-                'sitemap': 'Robots.txt',
-                'robots': 'Robots.txt',
-                'https': 'HTTPS',
-                'broken_links': 'Links',
-                'redirect_chains': 'Redirects'
-            };
-            return categories[key] || 'Crawlability';
-        }
-
-
-
-        function openSolutionPage(category, issueKey, index) {
-            const data = currentAnalysisData;
-            let issueData = null;
-            
-            if (category === 'seo') {
-                issueData = data.seo.issues[index];
-            } else if (category === 'performance') {
-                issueData = {
-                    key: issueKey,
-                    message: getPerformanceIssueMessage(issueKey, data.performance),
-                    explanation: getPerformanceIssueExplanation(issueKey),
-                    fix: getPerformanceFix(issueKey),
-                    code: getPerformanceCode(issueKey),
-                    impact: getPerformanceImpact(issueKey)
-                };
-            } else if (category === 'crawlability') {
-                issueData = data.crawl.details[index];
-            }
-            
-            const params = new URLSearchParams({
-                category: category,
-                issueKey: issueKey,
-                index: index,
-                data: JSON.stringify(issueData)
-            });
-            
-            window.open(`solution-page.html?${params.toString()}`, '_blank');
-        }
-
-
 
         // Allow Enter key to trigger analysis
         document.getElementById('urlInput').addEventListener('keypress', function(e) {
@@ -692,24 +876,8 @@
             }
         });
 
-        // Test connection on load
-        window.addEventListener('load', async function() {
-            try {
-                const response = await fetch('http://localhost:3000/health');
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ Backend connected:', data);
-                    document.getElementById('msg').textContent = '✅ Backend connected and ready for analysis!';
-                    document.getElementById('msg').className = 'text-center text-green-400 font-semibold mb-4';
-                } else {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-            } catch (error) {
-                console.error('❌ Backend connection failed:', error);
-                document.getElementById('msg').textContent = '⚠️ Backend not connected. Please start the server.';
-                document.getElementById('msg').className = 'text-center text-red-400 font-semibold mb-4';
-            }
-        });
+        // Test if JavaScript is working
+        console.log('JavaScript loaded successfully');
     </script>
 </body>
 </html>
