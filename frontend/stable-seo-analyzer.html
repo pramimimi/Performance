@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ Quintype Performance Analyzer</title>
+    <title>⚡ Quintype Performance Analyser</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .milk-button {
@@ -19,6 +19,7 @@
         }
         .glass {
             background: rgba(255, 255, 255, 0.1);
+            -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
@@ -30,6 +31,7 @@
             height: 8px;
             border-radius: 4px;
             transition: width 0.3s ease;
+            width: 0%;
         }
         .code-block {
             background: #1e293b;
@@ -48,7 +50,7 @@
                     <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
                 </svg>
                 <h1 class="text-5xl font-bold bg-gradient-to-r from-blue-400 to-white bg-clip-text text-transparent">
-                    ⚡ Performance Analyzer
+                    ⚡ Quintype Performance Analyser
                 </h1>
             </div>
             <p class="text-blue-200 text-xl">AI-powered website performance analysis</p>
@@ -57,7 +59,7 @@
         <!-- Analysis Section -->
         <section class="glass p-8 rounded-2xl shadow-2xl mb-6 ai-glow">
             <div class="text-center mb-6">
-                <h2 class="text-4xl font-bold text-white mb-2">🚀 Performance Analysis</h2>
+                <h2 class="text-4xl font-bold text-white mb-2">Performance Analysis</h2>
                 <p class="text-blue-200 text-lg">Enter any website URL to get comprehensive performance insights</p>
             </div>
             
@@ -78,6 +80,16 @@
             </div>
             
             <div id="msg" class="text-center text-green-400 font-semibold mb-4"></div>
+            <div id="progressContainer" class="hidden mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm text-blue-300">⚡ Analyzing website performance...</span>
+                    <span id="progressPercent" class="text-sm text-blue-300">0%</span>
+                </div>
+                <div class="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                    <div id="progressBar" class="progress-bar h-full transition-all duration-300 ease-out"></div>
+                </div>
+                <div id="progressStatus" class="text-xs text-blue-200 mt-1">Initializing analysis...</div>
+            </div>
         </section>
 
         <!-- Results Section -->
@@ -103,9 +115,40 @@
             }
             
             isAnalyzing = true;
-            msg.textContent = '⚡ Analyzing website performance... This may take 15-30 seconds';
+            
+            // Show progress bar and hide message
+            msg.textContent = '';
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressStatus = document.getElementById('progressStatus');
+            
+            progressContainer.classList.remove('hidden');
             btn.disabled = true;
             btn.textContent = '🔄 Analyzing...';
+            
+            // Start progress animation
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 15; // Random increment for realistic feel
+                if (progress > 90) progress = 90; // Don't complete until actual response
+                
+                progressBar.style.width = progress + '%';
+                progressPercent.textContent = Math.round(progress) + '%';
+                
+                // Update status messages
+                if (progress < 20) {
+                    progressStatus.textContent = 'Connecting to server...';
+                } else if (progress < 40) {
+                    progressStatus.textContent = 'Fetching page data...';
+                } else if (progress < 60) {
+                    progressStatus.textContent = 'Running performance tests...';
+                } else if (progress < 80) {
+                    progressStatus.textContent = 'Analyzing results...';
+                } else {
+                    progressStatus.textContent = 'Generating report...';
+                }
+            }, 200);
             
             try {
                 console.log('Starting performance analysis for:', url);
@@ -126,12 +169,27 @@
                 const data = await response.json();
                 console.log('Performance analysis completed:', data);
                 
+                // Complete progress bar
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+                progressPercent.textContent = '100%';
+                progressStatus.textContent = 'Analysis complete!';
+                
+                // Hide progress bar after a short delay
+                setTimeout(() => {
+                    progressContainer.classList.add('hidden');
+                }, 1000);
+                
                 const issueCount = data.performance && data.performance.issues ? data.performance.issues.length : 0;
                 msg.textContent = `✅ Analysis complete! Found ${issueCount} performance issues.`;
                 displayResults(data);
                 
             } catch (error) {
                 console.error('Performance analysis failed:', error);
+                
+                // Clear progress bar on error
+                clearInterval(progressInterval);
+                progressContainer.classList.add('hidden');
                 
                 // Show a more helpful error message
                 if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
@@ -572,7 +630,6 @@
                             📄 Download PDF Report
                         </button>
                     </div>
-                    <p class="text-blue-200 mb-6">Comprehensive AI-powered recommendations to improve each Core Web Vitals metric</p>
                     <div class="text-center py-8">
                         <p class="text-gray-300 text-lg">Detailed analysis and solutions are available in the downloadable PDF report.</p>
                         <p class="text-gray-400 text-sm mt-2">Click the "Download PDF Report" button above to get the complete analysis.</p>
@@ -821,7 +878,7 @@
         
         .stat-label {
             font-size: 12px;
-            color: #9ca3af;
+            color: #d1d5db;
             margin-bottom: 5px;
         }
         
@@ -862,7 +919,7 @@
         
         .category-name, .service-name {
             font-weight: 500;
-            color: #f3f4f6;
+            color: #ffffff;
         }
         
         .category-count, .service-count {
@@ -905,7 +962,7 @@
             flex: 1;
             font-family: monospace;
             font-size: 12px;
-            color: #d1d5db;
+            color: #e5e7eb;
             word-break: break-all;
         }
         
@@ -936,12 +993,12 @@
         
         .script-type, .tracking-service {
             font-weight: 500;
-            color: #f3f4f6;
+            color: #ffffff;
         }
         
         .script-domain, .tracking-domain {
             font-size: 12px;
-            color: #9ca3af;
+            color: #e5e7eb;
             margin-bottom: 3px;
         }
         

@@ -395,7 +395,11 @@ async function getEnhancedFallbackPerformanceAnalysis(html, url) {
       explanation: 'Alt text improves accessibility and helps with SEO.',
       fix: 'Add descriptive alt text to all images',
       impact: 'Low - Accessibility and SEO improvement',
-      code: `<img src="image.jpg" alt="Descriptive text about the image">`
+      code: `<img src="hero-image.jpg" alt="Professional developer working on laptop with coffee">
+<!-- For decorative images, use empty alt -->
+<img src="decorative-border.png" alt="">
+<!-- For complex images, provide detailed descriptions -->
+<img src="chart.png" alt="Sales growth chart showing 25% increase from Q1 to Q2 2024">`
     });
   }
   
@@ -1220,7 +1224,7 @@ function generateComprehensiveDiagnostics(html, targetUrl) {
         explanation: 'Meta descriptions help search engines understand your page content and appear in search results.',
         fix: 'Add a meta description tag to your HTML head section',
         impact: 'Medium - SEO and search result appearance',
-        code: `<meta name="description" content="Your page description here (150-160 characters)">`
+        code: `<meta name="description" content="Learn about web performance optimization, SEO best practices, and Core Web Vitals. Get actionable insights to improve your website speed and user experience.">`
       });
     }
 
@@ -1234,7 +1238,7 @@ function generateComprehensiveDiagnostics(html, targetUrl) {
         explanation: 'Title tags are crucial for SEO and appear in browser tabs and search results.',
         fix: 'Add a descriptive title tag to your HTML head section',
         impact: 'High - Essential for SEO and user experience',
-        code: `<title>Your Page Title Here (50-60 characters)</title>`
+        code: `<title>Web Performance Analyzer - SEO & Speed Optimization Tool</title>`
       });
     }
 
@@ -1248,7 +1252,7 @@ function generateComprehensiveDiagnostics(html, targetUrl) {
         explanation: 'H1 tags help structure your content and improve SEO.',
         fix: 'Add an H1 tag to your main content',
         impact: 'Medium - SEO and content structure',
-        code: `<h1>Your Main Heading</h1>`
+        code: `<h1>Complete Web Performance Analysis Report</h1>`
       });
     }
 
@@ -1262,7 +1266,9 @@ function generateComprehensiveDiagnostics(html, targetUrl) {
         explanation: 'Favicons improve brand recognition and user experience.',
         fix: 'Add a favicon link to your HTML head section',
         impact: 'Low - Brand recognition and user experience',
-        code: `<link rel="icon" type="image/x-icon" href="/favicon.ico">`
+        code: `<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">`
       });
     }
 
@@ -1276,7 +1282,10 @@ function generateComprehensiveDiagnostics(html, targetUrl) {
         explanation: 'Open Graph tags improve how your page appears when shared on social media.',
         fix: 'Add Open Graph meta tags to your HTML head section',
         impact: 'Low - Social media sharing appearance',
-        code: `<meta property="og:title" content="Your Page Title">`
+        code: `<meta property="og:title" content="Web Performance Analyzer - SEO & Speed Optimization">
+<meta property="og:description" content="Analyze your website performance, Core Web Vitals, and SEO metrics with our comprehensive tool.">
+<meta property="og:image" content="https://yoursite.com/og-image.jpg">
+<meta property="og:url" content="${targetUrl}">`
       });
     }
 
@@ -1290,7 +1299,10 @@ function generateComprehensiveDiagnostics(html, targetUrl) {
         explanation: 'Canonical URLs help prevent duplicate content issues and improve SEO.',
         fix: 'Add a canonical link tag to your HTML head section',
         impact: 'Low - SEO and duplicate content prevention',
-        code: `<link rel="canonical" href="${targetUrl}">`
+        code: `<link rel="canonical" href="${targetUrl}">
+<!-- Also add hreflang for international sites -->
+<link rel="alternate" hreflang="en" href="${targetUrl}">
+<link rel="alternate" hreflang="x-default" href="${targetUrl}">`
       });
     }
 
@@ -1305,7 +1317,11 @@ function generateComprehensiveDiagnostics(html, targetUrl) {
         explanation: 'Alt text improves accessibility and helps with SEO.',
         fix: 'Add descriptive alt text to all images',
         impact: 'Medium - Accessibility and SEO',
-        code: `<img src="image.jpg" alt="Descriptive text about the image">`
+        code: `<img src="hero-image.jpg" alt="Professional developer working on laptop with coffee">
+<!-- For decorative images, use empty alt -->
+<img src="decorative-border.png" alt="">
+<!-- For complex images, provide detailed descriptions -->
+<img src="chart.png" alt="Sales growth chart showing 25% increase from Q1 to Q2 2024">`
       });
     }
 
@@ -1319,7 +1335,10 @@ function generateComprehensiveDiagnostics(html, targetUrl) {
         explanation: 'Viewport meta tag is essential for responsive design and mobile optimization.',
         fix: 'Add viewport meta tag to your HTML head section',
         impact: 'High - Mobile responsiveness and SEO',
-        code: `<meta name="viewport" content="width=device-width, initial-scale=1.0">`
+        code: `<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<!-- Additional mobile optimization -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">`
       });
     }
 
