@@ -1,6 +1,3 @@
-// Load environment variables
-require('dotenv').config();
-
 const express = require('express');
 const cors = require('cors');
 const { exec } = require('child_process');
@@ -16,13 +13,7 @@ const execAsync = util.promisify(exec);
 // API configuration
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'your-openai-api-key-here';
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-const PAGESPEED_API_KEY = process.env.NEXT_PUBLIC_PAGESPEED_API_KEY || process.env.PAGESPEED_API_KEY || '';
-
-// Debug environment variables
-console.log('🔧 Environment Variables Debug:');
-console.log('OPENAI_API_KEY:', OPENAI_API_KEY ? 'Set (length: ' + OPENAI_API_KEY.length + ')' : 'Not set');
-console.log('PAGESPEED_API_KEY:', PAGESPEED_API_KEY ? 'Set (length: ' + PAGESPEED_API_KEY.length + ')' : 'Not set');
-console.log('NEXT_PUBLIC_PAGESPEED_API_KEY:', process.env.NEXT_PUBLIC_PAGESPEED_API_KEY ? 'Set' : 'Not set');
+const PAGESPEED_API_KEY = process.env.PAGESPEED_API_KEY || '';
 
 const app = express();
 app.use(cors({
@@ -52,46 +43,6 @@ app.get('/test', (req, res) => {
     message: 'Server is working!',
     timestamp: new Date().toISOString()
   });
-});
-
-// Test AI functionality endpoint
-app.post('/test-ai', async (req, res) => {
-  try {
-    const { url } = req.body;
-    if (!url) {
-      return res.status(400).json({ error: 'URL is required' });
-    }
-
-    console.log('🤖 Testing AI functionality for:', url);
-    
-    const testData = {
-      overallScore: 75,
-      lcp: 2500,
-      cls: 0.1,
-      fcp: 1800,
-      tti: 3000,
-      tbt: 200,
-      fid: 100,
-      inp: 200
-    };
-
-    const aiAnalysis = await generateAIPerformanceAnalysis(testData, url);
-    
-    res.json({
-      message: 'AI Test Results',
-      url: url,
-      testData: testData,
-      aiAnalysis: aiAnalysis,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('❌ AI Test Error:', error);
-    res.status(500).json({
-      error: 'AI test failed',
-      message: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
 });
 
 // Fetch HTML for basic analysis
@@ -687,16 +638,6 @@ async function getEnhancedFallbackPerformanceAnalysis(html, url) {
       fid: fid <= 100 ? 'good' : fid <= 300 ? 'needs-improvement' : 'poor',
       inp: inp <= 200 ? 'good' : inp <= 500 ? 'needs-improvement' : 'poor'
     },
-    aiAnalysis: await generateAIPerformanceAnalysis({
-      overallScore,
-      lcp,
-      cls,
-      fcp,
-      tti,
-      tbt,
-      fid,
-      inp
-    }, url),
     summary: {
       totalIssues: issues.length,
       totalOpportunities: opportunities.length,
@@ -1007,21 +948,13 @@ function analyzeCustomCode(html, targetUrl) {
   }
   
   // Add TTI (Time to Interactive) issues from custom code
-  // First, find all script tags and their content
-  const scriptTagMatches = html.match(/<script[^>]*>[\s\S]*?<\/script>/gi) || [];
-  const customInlineScripts = scriptTagMatches.filter(scriptTag => {
-    // Check if it's an inline script (no src attribute)
-    if (scriptTag.includes('src=')) return false;
-    
-    // Extract the content between script tags
-    const contentMatch = scriptTag.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
-    if (!contentMatch || !contentMatch[1]) return false;
-    
-    const scriptContent = contentMatch[1].toLowerCase();
-    return scriptContent.includes('custom') || 
-           scriptContent.includes('publisher') || 
-           scriptContent.includes('widget');
-  });
+  const customInlineScripts = (html.match(/<script[^>]*>/gi) || []).filter(script => 
+    !script.includes('src=') && (
+      script.innerHTML.includes('custom') || 
+      script.innerHTML.includes('publisher') || 
+      script.innerHTML.includes('widget')
+    )
+  );
   
   if (customInlineScripts.length > 0) {
     customCodeAnalysis.tti.push({
@@ -1271,810 +1204,238 @@ analyticsWorker.postMessage({ type: 'track', data: eventData });
   return recommendations;
 }
 
-// Enhanced custom code and third-party analysis with real data
+// Enhanced custom code and third-party analysis
 function analyzeCustomCodeAndThirdParty(html, targetUrl) {
   try {
-    // Real-time analysis of HTML content
-    const inlineScripts = html.match(/<script[^>]*>[\s\S]*?<\/script>/gi) || [];
-    const externalScripts = html.match(/<script[^>]*src=["']([^"']+)["'][^>]*>/gi) || [];
-    const stylesheets = html.match(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi) || [];
-    const images = html.match(/<img[^>]*>/gi) || [];
-    const thirdPartyDomains = new Set();
-    
-    // Extract third-party domains from external scripts
-    externalScripts.forEach(script => {
-      const srcMatch = script.match(/src=["']([^"']+)["']/i);
-      if (srcMatch && srcMatch[1]) {
-        try {
-          const url = new URL(srcMatch[1], targetUrl);
-          if (url.hostname !== new URL(targetUrl).hostname) {
-            thirdPartyDomains.add(url.hostname);
-          }
-        } catch (e) {
-          // Invalid URL, skip
-        }
-      }
-    });
-    
-    // Custom Code Analyzer - Real Issues Based on Actual Content
     const customCodeAnalysis = {
-      topPriorityIssues: [],
-      summary: {
-        totalIssues: 0,
-        highPriorityIssues: 0,
-        estimatedPerformanceImpact: 'Low',
-        realMetrics: {
-          inlineScripts: inlineScripts.length,
-          externalScripts: externalScripts.length,
-          stylesheets: stylesheets.length,
-          images: images.length,
-          thirdPartyDomains: thirdPartyDomains.size
-        }
+      publisherCode: {
+        customWidgets: [],
+        inlineScripts: [],
+        customStyles: [],
+        publisherScripts: []
+      },
+      thirdPartyCode: {
+        externalScripts: [],
+        externalStyles: [],
+        widgets: [],
+        trackingScripts: []
+      },
+      performanceImpact: {
+        publisherBlockingScripts: 0,
+        thirdPartyBlockingScripts: 0,
+        heavyPublisherResources: 0,
+        heavyThirdPartyResources: 0,
+        layoutShifts: 0,
+        totalImpact: 'Low',
+        publisherImpact: 'Low',
+        thirdPartyImpact: 'Low'
       }
     };
 
-    // Analyze HTML for custom code issues based on real data
-    const issues = [];
+    // Extract domain from target URL
+    const targetDomain = new URL(targetUrl).hostname;
+    const publisherDomains = [targetDomain, 'accesstype.com', 'localhost', '127.0.0.1'];
     
-    // Issue 1: Blocking Inline Scripts (Real Analysis)
-    const blockingInlineScripts = inlineScripts.filter(script => {
-      if (script.includes('src=')) return false;
-      const contentMatch = script.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
-      if (!contentMatch || !contentMatch[1]) return false;
-      const content = contentMatch[1].trim();
-      return content.length > 500; // Large inline scripts
-    });
+    // Performance impact scoring
+    let publisherScore = 0;
+    let thirdPartyScore = 0;
     
-    if (blockingInlineScripts.length > 0) {
-      const totalInlineSize = blockingInlineScripts.reduce((total, script) => {
-        const contentMatch = script.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
-        return total + (contentMatch ? contentMatch[1].length : 0);
-      }, 0);
-      
-      issues.push({
-        priority: 1,
-        title: 'Blocking Inline Scripts',
-        severity: 'high',
-        count: blockingInlineScripts.length,
-        realData: {
-          totalSize: Math.round(totalInlineSize / 1024) + 'KB',
-          averageSize: Math.round(totalInlineSize / blockingInlineScripts.length) + ' chars'
-        },
-        keyFactors: [
-          {
-            factor: 'Large Inline JavaScript Blocks',
-            rootCause: `Found ${blockingInlineScripts.length} inline scripts (${Math.round(totalInlineSize / 1024)}KB total) larger than 500 characters that block HTML parsing and delay First Contentful Paint, preventing the browser from rendering content until all JavaScript is parsed and executed.`,
-            customSolution: `// Publisher custom code solution for inline script optimization
-const inlineScriptOptimizer = {
-  extractInlineScripts: () => {
-    const inlineScripts = document.querySelectorAll('script:not([src])');
-    inlineScripts.forEach((script, index) => {
-      if (script.textContent.length > 500) {
-        // Create external script file
-        const scriptContent = script.textContent;
-        const blob = new Blob([scriptContent], { type: 'application/javascript' });
-        const url = URL.createObjectURL(blob);
-        
-        // Replace with external script
-        const newScript = document.createElement('script');
-        newScript.src = url;
-        newScript.defer = true;
-        newScript.onload = () => {
-          // Initialize functionality after load
-          if (window.customInit) {
-            window.customInit();
-          }
-        };
-        script.parentNode.replaceChild(newScript, script);
-      }
-    });
-  },
-  init: () => {
-    inlineScriptOptimizer.extractInlineScripts();
-  }
-};`
-          }
-        ],
-        impact: 'High - Blocks HTML parsing and delays FCP',
-        recommendation: 'Move large inline scripts to external files and load them asynchronously'
-      });
-    }
+    // 1. Analyze Publisher Code (Our Code)
     
-    // Issue 2: Render-Blocking External Scripts (using real data)
-    const blockingScripts = externalScripts.filter(script => {
-      return !script.includes('async') && !script.includes('defer');
-    });
+    // 1.1 Publisher Custom Widgets
+    const publisherWidgetPatterns = [
+      /class="[^"]*widget[^"]*"/i,
+      /id="[^"]*widget[^"]*"/i,
+      /data-widget/i,
+      /custom-widget/i,
+      /publisher-widget/i,
+      /site-widget/i,
+      /quintype/i,
+      /accesstype/i
+    ];
     
-    if (blockingScripts.length > 0) {
-      issues.push({
-        priority: 2,
-        title: 'Render-Blocking External Scripts',
-        severity: 'high',
-        count: blockingScripts.length,
-        keyFactors: [
-          {
-            factor: 'Synchronous Script Loading',
-            rootCause: `Found ${blockingScripts.length} external scripts without async/defer attributes that block HTML parsing and delay page rendering, causing poor Core Web Vitals scores.`,
-            customSolution: `// Publisher custom code solution for script loading optimization
-const scriptLoadingOptimizer = {
-  optimizeScriptLoading: () => {
-    const blockingScripts = document.querySelectorAll('script[src]:not([async]):not([defer])');
-    blockingScripts.forEach(script => {
-      const src = script.src.toLowerCase();
-      
-      // Analytics and tracking scripts - make async
-      if (src.includes('analytics') || src.includes('gtag') || src.includes('facebook')) {
-        script.async = true;
-      }
-      // Framework scripts - make defer
-      else if (src.includes('jquery') || src.includes('bootstrap') || src.includes('react')) {
-        script.defer = true;
-      }
-      // Widget scripts - load after interaction
-      else if (src.includes('widget') || src.includes('chat')) {
-        script.dataset.defer = 'true';
-        script.remove();
-        
-        // Load after user interaction
-        document.addEventListener('click', () => {
-          if (script.dataset.defer) {
-            document.head.appendChild(script);
-            script.dataset.defer = 'false';
-          }
-        }, { once: true });
-      }
-    });
-  },
-  init: () => {
-    scriptLoadingOptimizer.optimizeScriptLoading();
-  }
-};`
-          }
-        ],
-        impact: 'High - Blocks HTML parsing and delays rendering',
-        recommendation: 'Add async or defer attributes to non-critical scripts'
-      });
-    }
-    
-    // Issue 3: Unoptimized Images (using real data)
-    const unoptimizedImages = images.filter(img => {
-      return !img.includes('loading=') && !img.includes('srcset=') && !img.includes('width=');
-    });
-    
-    if (unoptimizedImages.length > 0) {
-      issues.push({
-        priority: 3,
-        title: 'Unoptimized Images',
-        severity: 'high',
-        count: unoptimizedImages.length,
-        keyFactors: [
-          {
-            factor: 'Missing Image Optimization Attributes',
-            rootCause: `Found ${unoptimizedImages.length} images without loading, srcset, or dimension attributes that cause layout shifts, slow loading, and poor Core Web Vitals scores.`,
-            customSolution: `// Publisher custom code solution for image optimization
-const imageOptimizer = {
-  optimizeImages: () => {
-    const images = document.querySelectorAll('img:not([loading]):not([srcset])');
-    images.forEach(img => {
-      // Add lazy loading
-      if (!img.loading) {
-        img.loading = 'lazy';
-      }
-      
-      // Add responsive images
-      if (!img.srcset && img.src) {
-        const baseSrc = img.src.replace(/.(jpg|png|webp)$/i, '');
-        img.srcset = baseSrc + '-400.webp 400w, ' + baseSrc + '-800.webp 800w, ' + baseSrc + '-1200.webp 1200w';
-        img.sizes = '(max-width: 400px) 400px, (max-width: 800px) 800px, 1200px';
-      }
-      
-      // Add dimensions to prevent layout shift
-      if (!img.width || !img.height) {
-        img.onload = () => {
-          img.width = img.naturalWidth;
-          img.height = img.naturalHeight;
-          img.style.width = '100%';
-          img.style.height = 'auto';
-        };
-      }
-    });
-  },
-  init: () => {
-    imageOptimizer.optimizeImages();
-  }
-};`
-          }
-        ],
-        impact: 'High - Causes layout shifts and slow loading',
-        recommendation: 'Add loading, srcset, and dimension attributes to images'
-      });
-    }
-    
-    // Issue 4: Missing Critical CSS (using real data)
-    const blockingStylesheets = stylesheets.filter(link => {
-      return !link.includes('media=') && !link.includes('onload=');
-    });
-    
-    if (blockingStylesheets.length > 0) {
-      issues.push({
-        priority: 4,
-        title: 'Render-Blocking Stylesheets',
-        severity: 'high',
-        count: blockingStylesheets.length,
-        keyFactors: [
-          {
-            factor: 'Synchronous CSS Loading',
-            rootCause: `Found ${blockingStylesheets.length} external stylesheets without media attributes or onload handlers that block HTML parsing and delay First Contentful Paint.`,
-            customSolution: `// Publisher custom code solution for CSS optimization
-const cssOptimizer = {
-  optimizeStylesheets: () => {
-    const stylesheets = document.querySelectorAll('link[rel="stylesheet"]:not([media]):not([onload])');
-    stylesheets.forEach(link => {
-      // Defer non-critical stylesheets
-      link.media = 'print';
-      link.onload = () => {
-        link.media = 'all';
-      };
-      
-      // Add preload for critical CSS
-      if (link.href.includes('critical') || link.href.includes('main')) {
-        const preloadLink = document.createElement('link');
-        preloadLink.rel = 'preload';
-        preloadLink.as = 'style';
-        preloadLink.href = link.href;
-        document.head.insertBefore(preloadLink, link);
-      }
-    });
-  },
-  init: () => {
-    cssOptimizer.optimizeStylesheets();
-  }
-};`
-          }
-        ],
-        impact: 'High - Blocks HTML parsing and delays FCP',
-        recommendation: 'Defer non-critical stylesheets and preload critical CSS'
-      });
-    }
-    
-    // Issue 5: Third-Party Widgets Without Optimization
-    const thirdPartyWidgets = html.match(/<iframe[^>]*src=["'][^"']*(?:youtube|vimeo|twitter|facebook|instagram|linkedin|pinterest|tiktok|snapchat)["'][^>]*>/gi) || [];
-    
-    if (thirdPartyWidgets.length > 0) {
-      issues.push({
-        priority: 5,
-        title: 'Unoptimized Third-Party Widgets',
-        severity: 'high',
-        count: thirdPartyWidgets.length,
-        keyFactors: [
-          {
-            factor: 'Heavy Third-Party Embeds',
-            rootCause: 'Third-party widgets like social media embeds load synchronously and cause layout shifts, blocking main thread and degrading performance.',
-            customSolution: `// Publisher custom code solution for third-party widget optimization
-const widgetOptimizer = {
-  optimizeThirdPartyWidgets: () => {
-    const widgets = document.querySelectorAll('iframe[src*="youtube"], iframe[src*="vimeo"], iframe[src*="twitter"], iframe[src*="facebook"]');
-    widgets.forEach(widget => {
-      // Reserve space before loading
-      widget.style.width = '100%';
-      widget.style.height = '250px';
-      widget.style.border = 'none';
-      widget.style.backgroundColor = '#f0f0f0';
-      
-      // Store original src
-      const originalSrc = widget.src;
-      widget.src = '';
-      widget.dataset.src = originalSrc;
-      
-      // Load widget after page is stable
-      if (window.requestIdleCallback) {
-        requestIdleCallback(() => {
-          widget.src = widget.dataset.src;
+    publisherWidgetPatterns.forEach(pattern => {
+      const matches = html.match(new RegExp(pattern.source, 'gi'));
+      if (matches) {
+        matches.forEach(match => {
+          const widget = {
+            type: 'Publisher Widget',
+            pattern: match,
+            size: match.length,
+            impact: 'Medium - Publisher custom widget may cause layout shifts',
+            performanceScore: 2,
+            category: 'layout-shift'
+          };
+          customCodeAnalysis.publisherCode.customWidgets.push(widget);
+          publisherScore += 2;
         });
-        } else {
-        setTimeout(() => {
-          widget.src = widget.dataset.src;
-        }, 1000);
       }
     });
-  },
-  init: () => {
-    widgetOptimizer.optimizeThirdPartyWidgets();
-  }
-};`
-          }
-        ],
-        impact: 'High - Causes layout shifts and blocks main thread',
-        recommendation: 'Lazy load third-party widgets and reserve space for them'
-      });
+
+    // 1.2 Publisher Inline Scripts
+    const inlineScriptPattern = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+    let inlineMatch;
+    
+    while ((inlineMatch = inlineScriptPattern.exec(html)) !== null) {
+      const scriptContent = inlineMatch[1];
+      const scriptSize = scriptContent.length;
+      
+      if (scriptSize > 100) { // Only analyze substantial scripts
+        const isPublisherCode = isPublisherScript(scriptContent, targetDomain);
+        
+        if (isPublisherCode) {
+          const script = {
+            type: 'Publisher Inline Script',
+            size: scriptSize,
+            content: scriptContent.substring(0, 200) + '...',
+            impact: getScriptImpact(scriptSize, 'inline'),
+            performanceScore: getScriptScore(scriptSize, 'inline'),
+            category: 'blocking-script'
+          };
+          customCodeAnalysis.publisherCode.inlineScripts.push(script);
+          publisherScore += getScriptScore(scriptSize, 'inline');
+        }
+      }
     }
+
+    // 1.3 Publisher External Scripts
+    const scriptPattern = /<script[^>]*src=["']([^"']+)["'][^>]*>/gi;
+    let scriptMatch;
     
-    // Sort issues by priority and take top 5
-    issues.sort((a, b) => a.priority - b.priority);
-    customCodeAnalysis.topPriorityIssues = issues.slice(0, 5);
-    customCodeAnalysis.summary.totalIssues = issues.length;
-    customCodeAnalysis.summary.highPriorityIssues = issues.filter(issue => issue.severity === 'high').length;
-    customCodeAnalysis.summary.estimatedPerformanceImpact = 
-      customCodeAnalysis.summary.highPriorityIssues > 3 ? 'High' : 
-      customCodeAnalysis.summary.highPriorityIssues > 1 ? 'Medium' : 'Low';
+    while ((scriptMatch = scriptPattern.exec(html)) !== null) {
+      const scriptSrc = scriptMatch[1];
+      const scriptUrl = new URL(scriptSrc, targetUrl);
+      const scriptDomain = scriptUrl.hostname;
+      
+      if (isPublisherDomain(scriptDomain, publisherDomains)) {
+        const script = {
+          type: 'Publisher Script',
+          url: scriptSrc,
+          domain: scriptDomain,
+          size: 'Unknown',
+          impact: 'Medium - Publisher script may block rendering',
+          performanceScore: 3,
+          category: 'blocking-script'
+        };
+        customCodeAnalysis.publisherCode.publisherScripts.push(script);
+        publisherScore += 3;
+      }
+    }
+
+    // 2. Analyze Third-Party Code
     
+    // 2.1 Third-Party External Scripts
+    const thirdPartyScriptPattern = /<script[^>]*src=["']([^"']+)["'][^>]*>/gi;
+    let thirdPartyScriptMatch;
+    
+    while ((thirdPartyScriptMatch = thirdPartyScriptPattern.exec(html)) !== null) {
+      const scriptSrc = thirdPartyScriptMatch[1];
+      const scriptUrl = new URL(scriptSrc, targetUrl);
+      const scriptDomain = scriptUrl.hostname;
+      
+      if (!isPublisherDomain(scriptDomain, publisherDomains)) {
+        const scriptType = getThirdPartyType(scriptDomain);
+        const impact = getThirdPartyImpact(scriptDomain, scriptSrc);
+        const score = getThirdPartyScore(scriptDomain, scriptSrc);
+        
+        const script = {
+          type: scriptType,
+          url: scriptSrc,
+          domain: scriptDomain,
+          size: 'Unknown',
+          impact: impact,
+          performanceScore: score,
+          category: getThirdPartyCategory(scriptDomain)
+        };
+        
+        if (isTrackingScript(scriptDomain)) {
+          customCodeAnalysis.thirdPartyCode.trackingScripts.push(script);
+        } else {
+          customCodeAnalysis.thirdPartyCode.externalScripts.push(script);
+        }
+        
+        thirdPartyScore += score;
+      }
+    }
+
+    // 2.2 Third-Party Widgets and Embeds
+    const thirdPartyWidgetPatterns = [
+      /<iframe[^>]*src=["'][^"']*(?:youtube|vimeo|twitter|facebook|instagram|linkedin|pinterest|tiktok|snapchat)["'][^>]*>/gi,
+      /<div[^>]*class=["'][^"']*(?:fb-|twitter-|instagram-|linkedin-|pinterest-|tiktok-|snapchat-)/gi,
+      /<script[^>]*src=["'][^"']*(?:widget|embed|social|share)["'][^>]*>/gi
+    ];
+    
+    thirdPartyWidgetPatterns.forEach(pattern => {
+      const matches = html.match(pattern);
+      if (matches) {
+        matches.forEach(match => {
+          const widget = {
+            type: 'Third-Party Widget',
+            pattern: match.substring(0, 100) + '...',
+            size: match.length,
+            impact: 'High - Third-party widget may cause layout shifts and blocking',
+            performanceScore: 4,
+            category: 'layout-shift'
+          };
+          customCodeAnalysis.thirdPartyCode.widgets.push(widget);
+          thirdPartyScore += 4;
+        });
+      }
+    });
+
+    // 3. Calculate Performance Impact
+    
+    // 3.1 Count blocking scripts
+    customCodeAnalysis.performanceImpact.publisherBlockingScripts = 
+      customCodeAnalysis.publisherCode.inlineScripts.length + 
+      customCodeAnalysis.publisherCode.publisherScripts.length;
+    
+    customCodeAnalysis.performanceImpact.thirdPartyBlockingScripts = 
+      customCodeAnalysis.thirdPartyCode.externalScripts.length + 
+      customCodeAnalysis.thirdPartyCode.trackingScripts.length;
+    
+    // 3.2 Count heavy resources
+    customCodeAnalysis.performanceImpact.heavyPublisherResources = 
+      customCodeAnalysis.publisherCode.inlineScripts.filter(script => script.size > 1000).length;
+    
+    customCodeAnalysis.performanceImpact.heavyThirdPartyResources = 
+      customCodeAnalysis.thirdPartyCode.externalScripts.length; // All third-party scripts are considered heavy
+    
+    // 3.3 Count layout shifts
+    customCodeAnalysis.performanceImpact.layoutShifts = 
+      customCodeAnalysis.publisherCode.customWidgets.length + 
+      customCodeAnalysis.thirdPartyCode.widgets.length;
+    
+    // 3.4 Calculate impact levels
+    customCodeAnalysis.performanceImpact.publisherImpact = getImpactLevel(publisherScore);
+    customCodeAnalysis.performanceImpact.thirdPartyImpact = getImpactLevel(thirdPartyScore);
+    customCodeAnalysis.performanceImpact.totalImpact = getImpactLevel(publisherScore + thirdPartyScore);
+    
+    // 3.5 Add detailed performance analysis
+    customCodeAnalysis.performanceAnalysis = {
+      publisherIssues: [
+        ...customCodeAnalysis.publisherCode.customWidgets.map(w => ({ type: 'widget', impact: w.performanceScore })),
+        ...customCodeAnalysis.publisherCode.inlineScripts.map(s => ({ type: 'inline-script', impact: s.performanceScore })),
+        ...customCodeAnalysis.publisherCode.publisherScripts.map(s => ({ type: 'external-script', impact: s.performanceScore }))
+      ],
+      thirdPartyIssues: [
+        ...customCodeAnalysis.thirdPartyCode.externalScripts.map(s => ({ type: 'external-script', impact: s.performanceScore })),
+        ...customCodeAnalysis.thirdPartyCode.trackingScripts.map(s => ({ type: 'tracking-script', impact: s.performanceScore })),
+        ...customCodeAnalysis.thirdPartyCode.widgets.map(w => ({ type: 'widget', impact: w.performanceScore }))
+      ],
+      recommendations: generatePerformanceRecommendations(customCodeAnalysis)
+    };
+
     return customCodeAnalysis;
   } catch (error) {
     console.error('Error analyzing custom code:', error);
     return {
-      topPriorityIssues: [],
-      summary: {
-        totalIssues: 0,
-        highPriorityIssues: 0,
-        estimatedPerformanceImpact: 'Low'
-      }
+      customWidgets: [],
+      thirdPartyScripts: [],
+      customCodeBlocks: [],
+      performanceImpact: { blockingScripts: 0, heavyResources: 0, layoutShifts: 0, totalImpact: 'Low' }
     };
   }
-}
-
-// Helper function to fetch PageSpeed Insights data
-async function getPageSpeedData(url) {
-  try {
-    // Try with API key first (following Google's API documentation)
-    if (PAGESPEED_API_KEY && PAGESPEED_API_KEY !== 'YOUR_REAL_PAGESPEED_API_KEY_HERE' && PAGESPEED_API_KEY !== 'your-pagespeed-api-key-here') {
-      const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&key=${PAGESPEED_API_KEY}&strategy=mobile&category=performance`;
-      
-      console.log('🔍 Fetching PageSpeed Insights data with API key...');
-      const response = await fetch(apiUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; Quintype-SEO-Analyzer/2.0)'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ PageSpeed Insights data fetched successfully with API key');
-        return data;
-        } else {
-        console.log(`⚠️ PageSpeed API with key failed: ${response.status} - ${response.statusText}`);
-        if (response.status === 403) {
-          console.log('💡 Tip: Check if PageSpeed Insights API is enabled in Google Cloud Console');
-        }
-      }
-    }
-    
-    // Fallback to public API without key
-    console.log('🔍 Trying PageSpeed Insights public API (no key)...');
-    const publicApiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=mobile&category=performance`;
-    
-    const response = await fetch(publicApiUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Performance-Analyzer/3.0)'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`PageSpeed API error: ${response.status} - ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    console.log('✅ PageSpeed Insights data fetched successfully from public API');
-    
-    return data;
-  } catch (error) {
-    console.error('❌ PageSpeed API error:', error.message);
-    return null;
-  }
-}
-
-// Helper function to generate comprehensive performance categories
-function generatePerformanceCategories(performanceData) {
-  try {
-    const categories = {
-      // Core Web Vitals with detailed analysis
-      coreWebVitals: {
-        title: "Core Web Vitals",
-        description: "Essential metrics for measuring user experience",
-        score: performanceData.overallScore || 0,
-        metrics: {
-          lcp: {
-            value: performanceData.lcp || 0,
-            unit: "ms",
-            status: (performanceData.lcp || 0) <= 2500 ? 'good' : (performanceData.lcp || 0) <= 4000 ? 'needs-improvement' : 'poor',
-            description: "Largest Contentful Paint - measures loading performance",
-            targetValue: 2500,
-            currentValue: performanceData.lcp || 0,
-            analysis: generateLCPAnalysis(performanceData.lcp || 0)
-          },
-          cls: {
-            value: performanceData.cls || 0,
-            unit: "",
-            status: (performanceData.cls || 0) <= 0.1 ? 'good' : (performanceData.cls || 0) <= 0.25 ? 'needs-improvement' : 'poor',
-            description: "Cumulative Layout Shift - measures visual stability",
-            targetValue: 0.1,
-            currentValue: performanceData.cls || 0,
-            analysis: generateCLSAnalysis(performanceData.cls || 0)
-          },
-          fcp: {
-            value: performanceData.fcp || 0,
-            unit: "ms",
-            status: (performanceData.fcp || 0) <= 1800 ? 'good' : (performanceData.fcp || 0) <= 3000 ? 'needs-improvement' : 'poor',
-            description: "First Contentful Paint - measures loading performance",
-            targetValue: 1800,
-            currentValue: performanceData.fcp || 0
-          },
-          fid: {
-            value: performanceData.fid || 0,
-            unit: "ms",
-            status: (performanceData.fid || 0) <= 100 ? 'good' : (performanceData.fid || 0) <= 300 ? 'needs-improvement' : 'poor',
-            description: "First Input Delay - measures interactivity",
-            targetValue: 100,
-            currentValue: performanceData.fid || 0
-          },
-          inp: {
-            value: performanceData.inp || 0,
-            unit: "ms",
-            status: (performanceData.inp || 0) <= 200 ? 'good' : (performanceData.inp || 0) <= 500 ? 'needs-improvement' : 'poor',
-            description: "Interaction to Next Paint - measures responsiveness",
-            targetValue: 200,
-            currentValue: performanceData.inp || 0
-          }
-        }
-      },
-      
-      // Publisher Code Analysis
-      publisherCode: {
-        title: "Publisher Code - Inline Scripts",
-        description: "Analysis of scripts directly embedded in your website's HTML",
-        summary: {
-          totalScripts: 0,
-          highImpact: 0,
-          mediumImpact: 0,
-          lowImpact: 0
-        },
-        scripts: [],
-        analysis: generatePublisherCodeAnalysis()
-      },
-      
-      // Third-Party Code Analysis
-      thirdPartyCode: {
-        externalScripts: {
-          title: "Third-Party Code - External Scripts",
-          description: "Analysis of external scripts loaded from third-party domains",
-          summary: {
-            totalScripts: 0,
-            highImpact: 0,
-            mediumImpact: 0,
-            lowImpact: 0
-          },
-          services: [],
-          analysis: generateThirdPartyAnalysis()
-        },
-        trackingScripts: {
-          title: "Third-Party Code - Tracking Scripts",
-          description: "Analysis of scripts used for tracking and analytics",
-          summary: {
-            totalScripts: 0,
-            highImpact: 0,
-            mediumImpact: 0,
-            lowImpact: 0
-          },
-          services: [],
-          analysis: generateTrackingScriptsAnalysis()
-        }
-      },
-      
-      // High Priority Performance Issues
-      highPriorityIssues: {
-        title: "HIGH PRIORITY Performance Issues & Solutions",
-        description: "Critical performance problems with actionable solutions",
-        issues: generateHighPriorityIssues(performanceData),
-        totalIssues: 0
-      },
-      
-      // Performance Metrics
-      performanceMetrics: {
-        title: "Performance Metrics",
-        description: "Additional performance measurements",
-        metrics: {
-          tti: {
-            value: performanceData.tti || 0,
-            unit: "ms",
-            status: (performanceData.tti || 0) <= 3800 ? 'good' : (performanceData.tti || 0) <= 7300 ? 'needs-improvement' : 'poor',
-            description: "Time to Interactive - measures when page becomes fully interactive"
-          },
-          tbt: {
-            value: performanceData.tbt || 0,
-            unit: "ms",
-            status: (performanceData.tbt || 0) <= 200 ? 'good' : (performanceData.tbt || 0) <= 600 ? 'needs-improvement' : 'poor',
-            description: "Total Blocking Time - measures main thread blocking"
-          },
-          speedIndex: {
-            value: performanceData.speedIndex || 0,
-            unit: "ms",
-            status: (performanceData.speedIndex || 0) <= 3400 ? 'good' : (performanceData.speedIndex || 0) <= 5800 ? 'needs-improvement' : 'poor',
-            description: "Speed Index - measures how quickly content is visually displayed"
-          }
-        }
-      },
-      
-      // Performance Issues
-      performanceIssues: {
-        title: "Performance Issues",
-        description: "Identified performance problems and recommendations",
-        issues: performanceData.issues || [],
-        totalIssues: (performanceData.issues || []).length
-      },
-      
-      // Lighthouse Audits
-      lighthouseAudits: {
-        title: "Lighthouse Audits",
-        description: "Detailed audit results from Google Lighthouse",
-        audits: performanceData.audits || {},
-        categories: performanceData.categories || {}
-      }
-    };
-    
-    return categories;
-  } catch (error) {
-    console.error('Error generating performance categories:', error);
-    return {
-      error: 'Failed to generate performance categories',
-      details: error.message
-    };
-  }
-}
-
-// Helper functions for detailed analysis generation
-function generateLCPAnalysis(lcpValue) {
-  const issues = [];
-  
-  if (lcpValue > 4000) {
-    issues.push({
-      key: "large-image-file-size",
-      priority: "high",
-      keyFactor: "Large Image File Size",
-      rootCause: "Using unoptimized image formats (JPG/PNG/GIF) that are 3-5x larger than modern formats, causing slow downloads and delayed LCP.",
-      specificSolution: "Convert images to modern formats like WebP, which are 20-50% smaller while maintaining quality.",
-      recommendation: "Use WebP for broad compatibility, AVIF for cutting-edge browsers. Always provide JPG fallback.",
-      customCodeSolution: `// Image format optimization
-document.querySelectorAll('img').forEach(img => {
-  if (img.src.includes('.jpg') || img.src.includes('.png')) {
-    // Convert to WebP format
-    img.src = img.src.replace(/\\.(jpg|png)$/, '.webp');
-    
-    // Add responsive srcset
-    img.srcset = \`\${img.src.replace('.webp', '-1200w.webp')} 1200w,
-                  \${img.src.replace('.webp', '-800w.webp')} 800w,
-                  \${img.src.replace('.webp', '-400w.webp')} 400w\`;
-    img.sizes = '(max-width: 400px) 400px, (max-width: 800px) 800px, 1200px';
-  }
-});`
-    });
-  }
-  
-  if (lcpValue > 2500) {
-    issues.push({
-      key: "lcp-image-not-prioritized",
-      priority: "medium",
-      keyFactor: "LCP Image Not Prioritized",
-      rootCause: "Browser doesn't know which image is most important, so it loads them in document order rather than priority.",
-      specificSolution: "Preload the LCP image in the document head to give it highest priority.",
-      recommendation: "Identify your largest content element and preload it immediately after critical CSS.",
-      customCodeSolution: `// Preload LCP image
-const lcpImage = document.querySelector('img[data-lcp]') || 
-                 document.querySelector('img[src*="hero"]') ||
-                 document.querySelector('img[src*="banner"]');
-
-if (lcpImage) {
-  const preloadLink = document.createElement('link');
-  preloadLink.rel = 'preload';
-  preloadLink.href = lcpImage.src;
-  preloadLink.as = 'image';
-  document.head.appendChild(preloadLink);
-}`
-    });
-  }
-  
-  return {
-    currentValue: lcpValue,
-    targetValue: 2500,
-    status: lcpValue <= 2500 ? 'good' : lcpValue <= 4000 ? 'needs-improvement' : 'poor',
-    issues: issues
-  };
-}
-
-function generateCLSAnalysis(clsValue) {
-  const issues = [];
-  
-  if (clsValue > 0.25) {
-    issues.push({
-      key: "unstable-layout",
-      priority: "high",
-      keyFactor: "Unstable Layout Elements",
-      rootCause: "Elements are shifting during page load due to missing dimensions, font loading, or dynamic content insertion.",
-      specificSolution: "Reserve space for dynamic content and ensure images have explicit dimensions.",
-      recommendation: "Use aspect-ratio CSS property, reserve space for ads, and preload fonts.",
-      customCodeSolution: `// Prevent layout shifts
-// 1. Reserve space for images
-img {
-  aspect-ratio: attr(width) / attr(height);
-  width: 100%;
-  height: auto;
-}
-
-// 2. Reserve space for dynamic content
-.ad-container {
-  min-height: 250px;
-  background: #f0f0f0;
-}
-
-// 3. Preload fonts
-<link rel="preload" href="/fonts/main.woff2" as="font" type="font/woff2" crossorigin>`
-    });
-  }
-  
-  return {
-    currentValue: clsValue,
-    targetValue: 0.1,
-    status: clsValue <= 0.1 ? 'good' : clsValue <= 0.25 ? 'needs-improvement' : 'poor',
-    issues: issues
-  };
-}
-
-function generatePublisherCodeAnalysis() {
-  return {
-    summary: "Analysis of inline scripts embedded in your HTML",
-    recommendations: [
-      "Extract large inline scripts to external files",
-      "Use async/defer attributes for non-critical scripts",
-      "Minimize inline JavaScript for better caching"
-    ]
-  };
-}
-
-function generateThirdPartyAnalysis() {
-  return {
-    summary: "Analysis of external scripts from third-party domains",
-    recommendations: [
-      "Lazy load non-critical third-party scripts",
-      "Use resource hints (preconnect, dns-prefetch)",
-      "Consider using facades for heavy third-party widgets"
-    ]
-  };
-}
-
-function generateTrackingScriptsAnalysis() {
-    return {
-    summary: "Analysis of tracking and analytics scripts",
-    recommendations: [
-      "Defer analytics scripts until after page load",
-      "Use Google Tag Manager for better performance",
-      "Consider server-side tracking for critical metrics"
-    ]
-  };
-}
-
-function generateHighPriorityIssues(performanceData) {
-  const issues = [];
-  
-  // LCP Issues
-  if (performanceData.lcp > 4000) {
-    issues.push({
-      key: "lcp-critical",
-      priority: "critical",
-      category: "Largest Contentful Paint",
-      keyFactor: "Render-blocking HTTP/JS",
-      rootCause: `Large inline scripts (${Math.round(performanceData.lcp / 1000)}KB total) are blocking the main thread`,
-      recommendation: "Extract inline scripts to separate .js files and load them asynchronously to prevent render blocking",
-      customCodeSolution: `// Publisher Code Optimization
-// Extract inline scripts to external files
-const inlineScripts = document.querySelectorAll('script:not([src])');
-inlineScripts.forEach((script, index) => {
-  if (script.innerHTML.length > 1000) {
-    // Create external script file
-    const scriptFile = new Blob([script.innerHTML], { type: 'application/javascript' });
-    const scriptUrl = URL.createObjectURL(scriptFile);
-    
-    // Replace with external script
-    const newScript = document.createElement('script');
-    newScript.src = scriptUrl;
-    newScript.async = true;
-    script.parentNode.replaceChild(newScript, script);
-  }
-});
-
-// Async loading for Google Tag Manager
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', 'GA_MEASUREMENT_ID');`
-    });
-  }
-  
-  // TBT Issues
-  if (performanceData.tbt > 600) {
-    issues.push({
-      key: "tbt-critical",
-      priority: "critical",
-      category: "Total Blocking Time",
-      keyFactor: "Heavy JavaScript Execution",
-      rootCause: `JavaScript is blocking the main thread for ${performanceData.tbt}ms, preventing user interaction`,
-      recommendation: "Minimize JavaScript execution time and use code splitting to defer non-critical scripts",
-      customCodeSolution: `// Optimize JavaScript execution
-// Use requestIdleCallback for non-critical tasks
-if ('requestIdleCallback' in window) {
-  requestIdleCallback(() => {
-    // Non-critical JavaScript here
-    loadAnalytics();
-    loadSocialWidgets();
-  });
-}
-
-// Code splitting with dynamic imports
-async function loadNonCriticalFeatures() {
-  const { initChatWidget } = await import('./chat-widget.js');
-  const { initRecommendations } = await import('./recommendations.js');
-  
-  initChatWidget();
-  initRecommendations();
-}
-
-// Load after page is interactive
-window.addEventListener('load', loadNonCriticalFeatures);`
-    });
-  }
-  
-  // TTI Issues
-  if (performanceData.tti > 7300) {
-    issues.push({
-      key: "tti-critical",
-      priority: "critical",
-      category: "Time to Interactive",
-      keyFactor: "Slow JavaScript Loading",
-      rootCause: `Page takes ${performanceData.tti}ms to become fully interactive due to heavy JavaScript`,
-      recommendation: "Optimize JavaScript loading and reduce bundle size using code splitting",
-      customCodeSolution: `// Optimize TTI
-// Defer non-critical JavaScript
-<script>
-// Critical JavaScript only
-document.addEventListener('DOMContentLoaded', function() {
-  // Essential functionality only
-  initNavigation();
-  initSearch();
-});
-
-// Defer everything else
-window.addEventListener('load', function() {
-  // Load non-critical features
-  import('./analytics.js');
-  import('./social-share.js');
-  import('./comments.js');
-});
-</script>`
-    });
-  }
-  
-  return issues;
-}
-
-// Helper function to extract Core Web Vitals from PageSpeed data
-function extractCoreWebVitals(pageSpeedData) {
-  if (!pageSpeedData || !pageSpeedData.lighthouseResult) {
-    return null;
-  }
-  
-  const audits = pageSpeedData.lighthouseResult.audits;
-  const categories = pageSpeedData.lighthouseResult.categories;
-  
-    return {
-    lcp: audits['largest-contentful-paint']?.numericValue || null,
-    cls: audits['cumulative-layout-shift']?.numericValue || null,
-    fcp: audits['first-contentful-paint']?.numericValue || null,
-    fid: audits['max-potential-fid']?.numericValue || null,
-    tti: audits['interactive']?.numericValue || null,
-    tbt: audits['total-blocking-time']?.numericValue || null,
-    speedIndex: audits['speed-index']?.numericValue || null,
-    performanceScore: categories.performance?.score ? Math.round(categories.performance.score * 100) : null,
-    accessibilityScore: categories.accessibility?.score ? Math.round(categories.accessibility.score * 100) : null,
-    bestPracticesScore: categories['best-practices']?.score ? Math.round(categories['best-practices'].score * 100) : null,
-    seoScore: categories.seo?.score ? Math.round(categories.seo.score * 100) : null
-  };
 }
 
 // Helper function to identify third-party service type
@@ -2759,12 +2120,9 @@ const algorithmOptimizer = {
 // ChatGPT API function for enhanced analysis
 async function getChatGPTSolution(issue, html, targetUrl) {
   try {
-    if (!OPENAI_API_KEY || OPENAI_API_KEY === 'your-openai-api-key-here') {
-      console.log('⚠️ No OpenAI API key provided - skipping AI analysis');
+    if (OPENAI_API_KEY === 'your-openai-api-key-here') {
       return null; // Skip if no API key provided
     }
-    
-    console.log('🤖 Generating AI-powered solution with ChatGPT...');
 
     const prompt = `As a web performance expert, analyze this performance issue and provide a detailed solution:
 
@@ -2809,450 +2167,11 @@ Please provide a comprehensive, actionable response.`;
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
-    console.log('✅ AI-powered solution generated successfully');
-    return aiResponse;
+    return data.choices[0].message.content;
   } catch (error) {
-    console.log('❌ ChatGPT API failed:', error.message);
+    console.log('ChatGPT API failed:', error.message);
     return null;
   }
-}
-
-// Advanced AI-powered performance analysis with detailed insights
-async function generateAdvancedAIAnalysis(performanceData, targetUrl, html) {
-  try {
-    if (!OPENAI_API_KEY || OPENAI_API_KEY === 'your-openai-api-key-here') {
-      console.log('⚠️ No OpenAI API key provided - skipping advanced AI analysis');
-      return null;
-    }
-    
-    console.log('🤖 Generating advanced AI performance analysis...');
-    
-    const lcp = performanceData.lcp || 0;
-    const cls = performanceData.cls || 0;
-    const fcp = performanceData.fcp || 0;
-    const overallScore = performanceData.overallScore || 0;
-    
-    const prompt = `As an elite web performance consultant with 20+ years of experience, analyze this website and provide detailed optimization recommendations:
-
-WEBSITE: ${targetUrl}
-PERFORMANCE SCORE: ${overallScore}/100
-LCP: ${lcp}ms | CLS: ${cls} | FCP: ${fcp}ms
-
-HTML ANALYSIS:
-${html.substring(0, 2000)}...
-
-Provide a detailed analysis with:
-
-## 🔍 Root Cause Analysis
-- Technical reasons for performance issues
-- Specific bottlenecks identified
-- Impact on user experience
-
-## ✅ Specific Solutions
-- Exact implementation steps
-- Code examples for each fix
-- Priority order for implementation
-
-## 💡 Recommendations
-- Best practices and tools
-- Industry standards to follow
-- Long-term optimization strategy
-
-## ⚙️ Custom Code Solutions
-- Ready-to-implement JavaScript code
-- Publisher-specific optimizations
-- Third-party script optimizations
-
-Focus on actionable, implementable solutions with specific code examples.`;
-
-    const response = await fetch(OPENAI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 2000,
-        temperature: 0.1
-      })
-    });
-
-    if (!response.ok) {
-      console.log('⚠️ Advanced AI analysis failed - using fallback');
-      return null;
-    }
-
-    const data = await response.json();
-    return {
-      analysis: data.choices[0].message.content,
-      timestamp: new Date().toISOString(),
-      model: 'gpt-4o-mini'
-    };
-  } catch (error) {
-    console.log('❌ Advanced AI analysis error:', error.message);
-    return null;
-  }
-}
-
-// Enhanced AI-powered performance analysis
-async function generateAIPerformanceAnalysis(performanceData, targetUrl) {
-  try {
-    if (!OPENAI_API_KEY || OPENAI_API_KEY === 'your-openai-api-key-here') {
-      console.log('⚠️ No OpenAI API key provided - skipping AI analysis');
-      return null;
-    }
-    
-    console.log('🤖 Generating comprehensive AI performance analysis...');
-    
-    // Extract real performance metrics
-    const lcp = performanceData.lcp || 0;
-    const cls = performanceData.cls || 0;
-    const fcp = performanceData.fcp || 0;
-    const tti = performanceData.tti || 0;
-    const tbt = performanceData.tbt || 0;
-    const fid = performanceData.fid || 0;
-    const inp = performanceData.inp || 0;
-    const speedIndex = performanceData.speedIndex || 0;
-    const overallScore = performanceData.overallScore || 0;
-    
-    // Determine performance status for each metric
-    const lcpStatus = lcp <= 2500 ? 'Good' : lcp <= 4000 ? 'Needs Improvement' : 'Poor';
-    const clsStatus = cls <= 0.1 ? 'Good' : cls <= 0.25 ? 'Needs Improvement' : 'Poor';
-    const fcpStatus = fcp <= 1800 ? 'Good' : fcp <= 3000 ? 'Needs Improvement' : 'Poor';
-    const ttiStatus = tti <= 3800 ? 'Good' : tti <= 7300 ? 'Needs Improvement' : 'Poor';
-    const tbtStatus = tbt <= 200 ? 'Good' : tbt <= 600 ? 'Needs Improvement' : 'Poor';
-    const fidStatus = fid <= 100 ? 'Good' : fid <= 300 ? 'Needs Improvement' : 'Poor';
-    const inpStatus = inp <= 200 ? 'Good' : inp <= 500 ? 'Needs Improvement' : 'Poor';
-    
-    // Identify critical issues based on real data
-    const criticalIssues = [];
-    if (lcp > 4000) criticalIssues.push(`LCP is ${lcp}ms (Poor - should be ≤2500ms)`);
-    if (cls > 0.25) criticalIssues.push(`CLS is ${cls} (Poor - should be ≤0.1)`);
-    if (fcp > 3000) criticalIssues.push(`FCP is ${fcp}ms (Poor - should be ≤1800ms)`);
-    if (tti > 7300) criticalIssues.push(`TTI is ${tti}ms (Poor - should be ≤3800ms)`);
-    if (tbt > 600) criticalIssues.push(`TBT is ${tbt}ms (Poor - should be ≤200ms)`);
-    if (fid > 300) criticalIssues.push(`FID is ${fid}ms (Poor - should be ≤100ms)`);
-    if (inp > 500) criticalIssues.push(`INP is ${inp}ms (Poor - should be ≤200ms)`);
-    
-    const prompt = `You are an elite web performance expert. Analyze this website and provide detailed optimization recommendations in this EXACT format:
-
-WEBSITE: ${targetUrl}
-PERFORMANCE SCORE: ${overallScore}/100
-LCP: ${lcp}ms | CLS: ${cls} | FCP: ${fcp}ms | TTI: ${tti}ms | TBT: ${tbt}ms
-
-Provide analysis in this EXACT structure:
-
-## 🔍 Root Cause
-[Technical explanation of why performance issues exist]
-
-## ✅ Specific Solution  
-[Exact steps to fix the problem]
-
-## 💡 Recommendation
-[Best practices and tools to use]
-
-## ⚙️ Custom Code Solution
-[Ready-to-implement JavaScript code]
-
-## 🧠 AI Performance Analysis for ${targetUrl}
-
-### Performance Rating
-**Excellent Performance (${overallScore}%)**
-Your website is performing exceptionally well! Focus on maintaining current optimizations and implementing advanced techniques.
-
-## 🚨 Critical Issues (Top 5)
-
-### Quick Wins (1-2 hours implementation)
-1. **Enable Gzip/Brotli Compression** - Reduce file sizes by 60-80%
-2. **Add Image Dimensions** - Prevent layout shifts  
-3. **Minify CSS/JS** - Reduce file sizes by 30-50%
-4. **Remove Unused CSS/JS** - Eliminate dead code
-5. **Optimize Images** - Convert to WebP/AVIF format
-
-### Medium-term Optimizations (1-2 weeks)
-1. **Implement Critical CSS** - Inline above-the-fold styles
-2. **Lazy Load Images** - Defer below-the-fold images
-3. **Optimize Third-party Scripts** - Load asynchronously
-4. **Implement Service Worker** - Cache resources
-5. **Database Query Optimization** - Improve server response times
-
-### Long-term Strategic Improvements (1-3 months)
-1. **CDN Implementation** - Distribute content globally
-2. **Code Splitting** - Load only necessary code
-3. **Progressive Web App (PWA)** - Enhanced user experience
-4. **Advanced Caching Strategy** - Multi-layer caching
-5. **Performance Monitoring** - Continuous optimization
-
-## 📈 Expected Results
-- **Quick Wins:** +10-20% performance score improvement
-- **Medium-term:** +20-35% performance score improvement  
-- **Long-term:** +35-50% performance score improvement
-- **Core Web Vitals:** All metrics should reach "Good" thresholds
-
-## 🗓️ Implementation Roadmap
-- **Week 1: Quick Wins** - Enable compression, Add image dimensions, Minify resources
-- **Week 2-3: Medium-term** - Implement critical CSS, Add lazy loading, Optimize third-party scripts
-- **Month 2-3: Long-term** - CDN implementation, Code splitting, PWA features
-
-Focus on the exact format shown above with Root Cause, Specific Solution, Recommendation, and Custom Code Solution sections.`;
-
-    // Add timeout to prevent long waits
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for comprehensive analysis
-
-    const response = await fetch(OPENAI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini', // More powerful model for better analysis
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 3000, // Increased for comprehensive analysis
-        temperature: 0.2 // Lower temperature for more focused responses
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        console.log('⚠️ OpenAI API rate limited - using fallback insights');
-        return generateFallbackAIInsights(performanceData, targetUrl);
-      }
-      console.log('⚠️ OpenAI API error - using fallback insights');
-      return generateFallbackAIInsights(performanceData, targetUrl);
-    }
-
-    const data = await response.json();
-    const analysis = data.choices[0].message.content;
-    console.log('✅ AI performance analysis generated successfully with real data');
-    
-    return {
-      summary: analysis,
-      timestamp: new Date().toISOString(),
-      model: 'gpt-3.5-turbo',
-      dataSource: 'Real Performance Metrics',
-      criticalIssues: criticalIssues,
-      metricsAnalyzed: {
-        lcp, cls, fcp, tti, tbt, fid, inp, speedIndex, overallScore
-      }
-    };
-  } catch (error) {
-    console.log('❌ AI performance analysis failed:', error.message);
-    console.log('🔄 Using fallback AI insights');
-    return generateFallbackAIInsights(performanceData, targetUrl);
-  }
-}
-
-// Generate comprehensive fallback AI insights when OpenAI is not available
-function generateFallbackAIInsights(performanceData, targetUrl) {
-  const score = performanceData.overallScore || 0;
-  const lcp = performanceData.lcp || 0;
-  const cls = performanceData.cls || 0;
-  const fcp = performanceData.fcp || 0;
-  const tbt = performanceData.tbt || 0;
-  const tti = performanceData.tti || 0;
-
-  let insights = `## 🔍 Root Cause
-Third-party scripts are blocking JavaScript execution and impacting performance. Found 0 high-impact third-party scripts.
-
-## ✅ Specific Solution
-Implement lazy loading and async loading for third-party scripts.
-
-## 💡 Recommendation
-Load third-party scripts asynchronously and defer non-critical ones until after page load.
-
-## ⚙️ Custom Code Solution
-\`\`\`javascript
-// Third Party Optimizer
-function thirdPartyOptimizer() {
-    const thirdPartyWidgets = document.querySelectorAll('iframe[src*="ads"], iframe[src*="social"], iframe[src*="widget"]');
-    thirdPartyWidgets.forEach(widget => {
-        widget.style.width = '100%';
-        widget.style.height = '258px';
-        widget.style.border = 'none';
-    });
-    
-    // Load after page is stable
-    if (window.requestIdleCallback) {
-        window.requestIdleCallback(() => {
-            thirdPartyOptimizer();
-        });
-    } else {
-        setTimeout(thirdPartyOptimizer, 100);
-    }
-}
-\`\`\`
-
-## 🧠 AI Performance Analysis for ${targetUrl}
-
-### Performance Rating
-**Excellent Performance (${score}%)**
-Your website is performing exceptionally well! Focus on maintaining current optimizations and implementing advanced techniques.
-
-## 🚨 Critical Issues (Top 5)
-
-### Quick Wins (1-2 hours implementation)
-1. **Enable Gzip/Brotli Compression** - Reduce file sizes by 60-80%
-2. **Add Image Dimensions** - Prevent layout shifts  
-3. **Minify CSS/JS** - Reduce file sizes by 30-50%
-4. **Remove Unused CSS/JS** - Eliminate dead code
-5. **Optimize Images** - Convert to WebP/AVIF format
-
-### Medium-term Optimizations (1-2 weeks)
-1. **Implement Critical CSS** - Inline above-the-fold styles
-2. **Lazy Load Images** - Defer below-the-fold images
-3. **Optimize Third-party Scripts** - Load asynchronously
-4. **Implement Service Worker** - Cache resources
-5. **Database Query Optimization** - Improve server response times
-
-### Long-term Strategic Improvements (1-3 months)
-1. **CDN Implementation** - Distribute content globally
-2. **Code Splitting** - Load only necessary code
-3. **Progressive Web App (PWA)** - Enhanced user experience
-4. **Advanced Caching Strategy** - Multi-layer caching
-5. **Performance Monitoring** - Continuous optimization
-
-## 📈 Expected Results
-- **Quick Wins:** +10-20% performance score improvement
-- **Medium-term:** +20-35% performance score improvement  
-- **Long-term:** +35-50% performance score improvement
-- **Core Web Vitals:** All metrics should reach "Good" thresholds
-
-## 🗓️ Implementation Roadmap
-- **Week 1: Quick Wins** - Enable compression, Add image dimensions, Minify resources
-- **Week 2-3: Medium-term** - Implement critical CSS, Add lazy loading, Optimize third-party scripts
-- **Month 2-3: Long-term** - CDN implementation, Code splitting, PWA features
-`;
-
-  // Critical Issues Analysis
-  insights += `## 🔥 Critical Issues (Top 5)\n\n`;
-  
-  const issues = [];
-  if (lcp > 4000) {
-    issues.push({
-      priority: 1,
-      title: "Largest Contentful Paint (LCP) - CRITICAL",
-      current: `${lcp}ms`,
-      target: "2500ms",
-      impact: "Very slow loading, poor user experience",
-      solution: "Optimize images, preload critical resources, improve server response time"
-    });
-  }
-  
-  if (cls > 0.25) {
-    issues.push({
-      priority: 2,
-      title: "Cumulative Layout Shift (CLS) - HIGH",
-      current: `${cls}`,
-      target: "0.1",
-      impact: "Content jumping, poor user experience",
-      solution: "Add image dimensions, reserve space for dynamic content"
-    });
-  }
-  
-  if (fcp > 3000) {
-    issues.push({
-      priority: 3,
-      title: "First Contentful Paint (FCP) - HIGH",
-      current: `${fcp}ms`,
-      target: "1800ms",
-      impact: "Slow perceived loading",
-      solution: "Optimize critical rendering path, reduce blocking resources"
-    });
-  }
-  
-  if (tbt > 600) {
-    issues.push({
-      priority: 4,
-      title: "Total Blocking Time (TBT) - MEDIUM",
-      current: `${tbt}ms`,
-      target: "200ms",
-      impact: "Unresponsive page, poor interactivity",
-      solution: "Optimize JavaScript, defer non-critical scripts"
-    });
-  }
-
-  if (tti > 7300) {
-    issues.push({
-      priority: 5,
-      title: "Time to Interactive (TTI) - MEDIUM",
-      current: `${tti}ms`,
-      target: "3800ms",
-      impact: "Slow page interactivity",
-      solution: "Reduce JavaScript execution time, optimize third-party scripts"
-    });
-  }
-
-  issues.forEach((issue, index) => {
-    insights += `### ${index + 1}. ${issue.title}\n`;
-    insights += `- **Current:** ${issue.current} | **Target:** ${issue.target}\n`;
-    insights += `- **Impact:** ${issue.impact}\n`;
-    insights += `- **Solution:** ${issue.solution}\n\n`;
-  });
-
-  // Quick Wins
-  insights += `## ⚡ Quick Wins (1-2 hours implementation)\n\n`;
-  insights += `1. **Enable Gzip/Brotli Compression** - Reduce file sizes by 60-80%\n`;
-  insights += `   \`\`\`apache\n   # Add to .htaccess\n   <IfModule mod_deflate.c>\n       AddOutputFilterByType DEFLATE text/plain text/html text/xml text/css text/javascript application/javascript application/x-javascript\n   </IfModule>\n   \`\`\`\n\n`;
-  insights += `2. **Add Image Dimensions** - Prevent layout shifts\n`;
-  insights += `   \`\`\`html\n   <img src="image.jpg" width="800" height="600" alt="Description">\n   \`\`\`\n\n`;
-  insights += `3. **Minify CSS/JS** - Reduce file sizes by 30-50%\n`;
-  insights += `4. **Remove Unused CSS/JS** - Eliminate dead code\n`;
-  insights += `5. **Optimize Images** - Convert to WebP/AVIF format\n\n`;
-
-  // Medium-term Optimizations
-  insights += `## 🚀 Medium-term Optimizations (1-2 weeks)\n\n`;
-  insights += `1. **Implement Critical CSS** - Inline above-the-fold styles\n`;
-  insights += `2. **Lazy Load Images** - Defer below-the-fold images\n`;
-  insights += `3. **Optimize Third-party Scripts** - Load asynchronously\n`;
-  insights += `4. **Implement Service Worker** - Cache resources\n`;
-  insights += `5. **Database Query Optimization** - Improve server response times\n\n`;
-
-  // Long-term Strategic Improvements
-  insights += `## 🎯 Long-term Strategic Improvements (1-3 months)\n\n`;
-  insights += `1. **CDN Implementation** - Distribute content globally\n`;
-  insights += `2. **Code Splitting** - Load only necessary code\n`;
-  insights += `3. **Progressive Web App (PWA)** - Enhanced user experience\n`;
-  insights += `4. **Advanced Caching Strategy** - Multi-layer caching\n`;
-  insights += `5. **Performance Monitoring** - Continuous optimization\n\n`;
-
-  // Expected Improvements
-  insights += `## 📊 Expected Results\n\n`;
-  insights += `- **Quick Wins**: +10-20% performance score improvement\n`;
-  insights += `- **Medium-term**: +20-35% performance score improvement\n`;
-  insights += `- **Long-term**: +35-50% performance score improvement\n`;
-  insights += `- **Core Web Vitals**: All metrics should reach "Good" thresholds\n\n`;
-
-  // Implementation Roadmap
-  insights += `## 🛠️ Implementation Roadmap\n\n`;
-  insights += `### Week 1: Quick Wins\n`;
-  insights += `- Enable compression\n`;
-  insights += `- Add image dimensions\n`;
-  insights += `- Minify resources\n\n`;
-  insights += `### Week 2-3: Medium-term\n`;
-  insights += `- Implement critical CSS\n`;
-  insights += `- Add lazy loading\n`;
-  insights += `- Optimize third-party scripts\n\n`;
-  insights += `### Month 2-3: Long-term\n`;
-  insights += `- CDN implementation\n`;
-  insights += `- Code splitting\n`;
-  insights += `- PWA features\n\n`;
-
-  return {
-    summary: insights,
-    timestamp: new Date().toISOString(),
-    model: 'fallback-analysis',
-    dataSource: 'Performance Metrics Analysis',
-    criticalIssues: issues.map(i => i.title),
-    metricsAnalyzed: { lcp, cls, fcp, tti, tbt, overallScore: score }
-  };
 }
 
 // Enhanced analysis function with AI insights
@@ -4269,551 +3188,6 @@ app.post('/metric-report', async (req, res) => {
   }
 });
 
-// Enhanced DOM analysis function
-function analyzeDOMStructure(html) {
-  const domAnalysis = {
-    images: [],
-    scripts: [],
-    stylesheets: [],
-    thirdPartyScripts: [],
-    inlineScripts: [],
-    blockingResources: [],
-    lcpElements: [],
-    clsElements: []
-  };
-
-  // Analyze images
-  const imageRegex = /<img[^>]*>/gi;
-  let match;
-  while ((match = imageRegex.exec(html)) !== null) {
-    const imgTag = match[0];
-    const srcMatch = imgTag.match(/src=["']([^"']+)["']/i);
-    const widthMatch = imgTag.match(/width=["']?(\d+)["']?/i);
-    const heightMatch = imgTag.match(/height=["']?(\d+)["']?/i);
-    const loadingMatch = imgTag.match(/loading=["']([^"']+)["']/i);
-    const fetchpriorityMatch = imgTag.match(/fetchpriority=["']([^"']+)["']/i);
-    
-    if (srcMatch) {
-      domAnalysis.images.push({
-        src: srcMatch[1],
-        width: widthMatch ? parseInt(widthMatch[1]) : null,
-        height: heightMatch ? parseInt(heightMatch[1]) : null,
-        loading: loadingMatch ? loadingMatch[1] : 'eager',
-        fetchpriority: fetchpriorityMatch ? fetchpriorityMatch[1] : null,
-        hasDimensions: !!(widthMatch && heightMatch),
-        isLazy: loadingMatch && loadingMatch[1] === 'lazy',
-        isHighPriority: fetchpriorityMatch && fetchpriorityMatch[1] === 'high',
-        size: imgTag.length,
-        isLCPCandidate: !loadingMatch || loadingMatch[1] !== 'lazy'
-      });
-    }
-  }
-
-  // Analyze scripts
-  const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
-  while ((match = scriptRegex.exec(html)) !== null) {
-    const scriptTag = match[0];
-    const scriptContent = match[1];
-    const srcMatch = scriptTag.match(/src=["']([^"']+)["']/i);
-    const asyncMatch = scriptTag.match(/async/i);
-    const deferMatch = scriptTag.match(/defer/i);
-    
-    if (srcMatch) {
-      const isThirdParty = !srcMatch[1].startsWith('/') && !srcMatch[1].startsWith('./') && !srcMatch[1].startsWith('../');
-      const scriptInfo = {
-        src: srcMatch[1],
-        isThirdParty: isThirdParty,
-        isAsync: !!asyncMatch,
-        isDefer: !!deferMatch,
-        isBlocking: !asyncMatch && !deferMatch,
-        size: scriptContent.length,
-        domain: isThirdParty ? new URL(srcMatch[1], 'https://example.com').hostname : 'same-origin'
-      };
-      
-      if (isThirdParty) {
-        domAnalysis.thirdPartyScripts.push(scriptInfo);
-      } else {
-        domAnalysis.scripts.push(scriptInfo);
-      }
-      
-      if (scriptInfo.isBlocking) {
-        domAnalysis.blockingResources.push(scriptInfo);
-      }
-    } else if (scriptContent.trim()) {
-      domAnalysis.inlineScripts.push({
-        content: scriptContent.substring(0, 200) + '...',
-        size: scriptContent.length,
-        isBlocking: true,
-        type: 'inline'
-      });
-      domAnalysis.blockingResources.push({
-        type: 'inline-script',
-        size: scriptContent.length,
-        content: scriptContent.substring(0, 100) + '...'
-      });
-    }
-  }
-
-  // Analyze stylesheets
-  const linkRegex = /<link[^>]*rel=["']stylesheet["'][^>]*>/gi;
-  while ((match = linkRegex.exec(html)) !== null) {
-    const linkTag = match[0];
-    const hrefMatch = linkTag.match(/href=["']([^"']+)["']/i);
-    const mediaMatch = linkTag.match(/media=["']([^"']+)["']/i);
-    
-    if (hrefMatch) {
-      domAnalysis.stylesheets.push({
-        href: hrefMatch[1],
-        media: mediaMatch ? mediaMatch[1] : 'all',
-        isBlocking: !mediaMatch || mediaMatch[1] === 'all',
-        size: linkTag.length
-      });
-      
-      if (!mediaMatch || mediaMatch[1] === 'all') {
-        domAnalysis.blockingResources.push({
-          type: 'stylesheet',
-          href: hrefMatch[1],
-          size: linkTag.length
-        });
-      }
-    }
-  }
-
-  // Identify LCP candidates (large images, hero sections)
-  domAnalysis.images.forEach(img => {
-    if (img.isLCPCandidate && (img.width > 400 || img.height > 300)) {
-      domAnalysis.lcpElements.push({
-        type: 'image',
-        src: img.src,
-        width: img.width,
-        height: img.height,
-        isOptimized: img.src.includes('.webp') || img.src.includes('.avif'),
-        hasPreload: false // Would need to check for preload links
-      });
-    }
-  });
-
-  // Identify CLS candidates (images without dimensions, dynamic content)
-  domAnalysis.images.forEach(img => {
-    if (!img.hasDimensions) {
-      domAnalysis.clsElements.push({
-        type: 'image-no-dimensions',
-        src: img.src,
-        issue: 'Missing width/height attributes'
-      });
-    }
-  });
-
-  return domAnalysis;
-}
-
-// Generate comprehensive analysis sections like the shared images
-function generateComprehensiveAnalysis(performanceData, html, targetUrl) {
-  const sections = [];
-  const domAnalysis = analyzeDOMStructure(html);
-  
-  // LCP Analysis
-  if (performanceData.lcp > 2500) {
-    const lcpImages = domAnalysis.lcpElements.filter(el => el.type === 'image');
-    const unoptimizedImages = domAnalysis.images.filter(img => !img.src.includes('.webp') && !img.src.includes('.avif'));
-    
-    sections.push({
-      metric: 'LCP',
-      title: 'Optimize Largest Contentful Element (High Priority - Image Optimization)',
-      status: performanceData.lcp <= 4000 ? 'needs-improvement' : 'poor',
-      currentValue: `${performanceData.lcp}ms`,
-      targetValue: '2500ms',
-      description: 'LCP measures loading performance. It marks the point when the largest content element becomes visible.',
-      impact: performanceData.lcp <= 4000 ? 'Medium - Loading could be faster' : 'High - Very slow loading',
-      
-      keyFactor: `Large Image File Sizes (${unoptimizedImages.length} unoptimized images found)`,
-      rootCause: `Using outdated image formats (JPEG/PNG) that are 3-5x larger than modern formats. Found ${unoptimizedImages.length} images without WebP/AVIF optimization.`,
-      specificSolution: 'Convert images to WebP or AVIF format, which are 60-80% smaller while maintaining quality.',
-      recommendation: 'Use tools like TinyPNG, ImageOptim, or automated compression in your build process.',
-      customCodeSolution: `// Publisher custom code for LCP image optimization
-const lcpOptimizer = {
-  preloadLCPImage: () => {
-    const lcpImage = document.querySelector('img[data-lcp]') ||
-                     document.querySelector('.hero img') ||
-                     document.querySelector('img:first-of-type');
-
-    if (lcpImage) {
-      const preloadLink = document.createElement('link');
-      preloadLink.rel = 'preload';
-      preloadLink.as = 'image';
-      preloadLink.href = lcpImage.src;
-      document.head.insertBefore(preloadLink, document.head.firstChild);
-    }
-  },
-  optimizeImages: () => {
-    const images = document.querySelectorAll('img');
-    images.forEach(img => {
-      const baseSrc = img.src.replace(/.(jpg|png|webp)$/i, '');
-      img.srcset = \`\${baseSrc}-400.webp 400w, \${baseSrc}-800.webp 800w, \${baseSrc}-1200.webp 1200w\`;
-      img.sizes = '(max-width: 400px) 400px, (max-width: 800px) 800px, 1200px';
-      img.loading = 'lazy';
-      img.fetchpriority = 'high';
-    });
-  }
-};`
-    });
-  }
-
-  // CLS Analysis
-  if (performanceData.cls > 0.1) {
-    const imagesWithoutDimensions = domAnalysis.clsElements.filter(el => el.type === 'image-no-dimensions');
-    
-    sections.push({
-      metric: 'CLS',
-      title: 'Set Image Dimensions (High Priority - Image Dimensions)',
-      status: performanceData.cls <= 0.25 ? 'needs-improvement' : 'poor',
-      currentValue: performanceData.cls.toFixed(3),
-      targetValue: '0.1',
-      description: 'CLS measures visual stability. It quantifies how much visible content shifts during page load.',
-      impact: performanceData.cls <= 0.25 ? 'Medium - Some layout shifts' : 'High - Significant layout shifts',
-      
-      keyFactor: `Images Without Dimensions (${imagesWithoutDimensions.length} images found)`,
-      rootCause: `Images loaded without width/height attributes cause the browser to recalculate layout when they load, pushing other content around. Found ${imagesWithoutDimensions.length} images without dimensions.`,
-      specificSolution: 'Add explicit width and height attributes to all images to reserve space before loading.',
-      recommendation: 'Always specify dimensions for images. Use CSS to make them responsive while maintaining aspect ratio.',
-      customCodeSolution: `// Publisher custom code for image dimensions
-const dimensionOptimizer = {
-  addImageDimensions: () => {
-    const images = document.querySelectorAll('img:not([width]):not([height])');
-    images.forEach(img => {
-      img.onload = () => {
-        img.style.width = '100%';
-        img.style.height = 'auto';
-        img.style.aspectRatio = \`\${img.naturalWidth} / \${img.naturalHeight}\`;
-      };
-    });
-  }
-};`
-    });
-  }
-
-  // FCP Analysis
-  if (performanceData.fcp > 1800) {
-    const blockingScripts = domAnalysis.blockingResources.filter(r => r.type === 'inline-script' || (r.isBlocking && r.type === 'script'));
-    const totalBlockingSize = blockingScripts.reduce((sum, script) => sum + (script.size || 0), 0);
-    
-    sections.push({
-      metric: 'FCP',
-      title: 'Optimize First Contentful Paint (High Priority - Critical Rendering Path)',
-      status: performanceData.fcp <= 3000 ? 'needs-improvement' : 'poor',
-      currentValue: `${performanceData.fcp}ms`,
-      targetValue: '1800ms',
-      description: 'FCP measures perceived loading speed. It marks when the first text or image is painted.',
-      impact: performanceData.fcp <= 3000 ? 'Medium - Loading could be faster' : 'High - Very slow first paint',
-      
-      keyFactor: `Large Inline Scripts Blocking HTML Parsing (${blockingScripts.length} scripts, ${Math.round(totalBlockingSize/1024)}KB total)`,
-      rootCause: `Large inline scripts are blocking the main thread and preventing the browser from rendering content quickly. Found ${blockingScripts.length} blocking scripts totaling ${Math.round(totalBlockingSize/1024)}KB.`,
-      specificSolution: 'Move inline scripts to external files and implement async/defer loading.',
-      recommendation: 'Extract inline scripts to separate .js files and load them asynchronously to prevent render blocking.',
-      customCodeSolution: `// Publisher custom code for script optimization
-const scriptOptimizer = {
-  optimizeScripts: () => {
-    const inlineScripts = document.querySelectorAll('script:not([src])');
-    inlineScripts.forEach((script, index) => {
-      if (script.textContent.trim()) {
-        const blob = new Blob([script.textContent], { type: 'application/javascript' });
-        const url = URL.createObjectURL(blob);
-        const newScript = document.createElement('script');
-        newScript.src = url;
-        newScript.async = true;
-        newScript.defer = true;
-        script.parentNode.replaceChild(newScript, script);
-      }
-    });
-  }
-};`
-    });
-  }
-
-  // TBT Analysis
-  if (performanceData.tbt > 200) {
-    const thirdPartyScripts = domAnalysis.thirdPartyScripts.filter(s => s.isBlocking);
-    
-    sections.push({
-      metric: 'TBT',
-      title: 'Reduce Total Blocking Time (High Priority - JavaScript Optimization)',
-      status: performanceData.tbt <= 600 ? 'needs-improvement' : 'poor',
-      currentValue: `${performanceData.tbt}ms`,
-      targetValue: '200ms',
-      description: 'TBT measures main thread blocking. It quantifies how long the main thread is blocked by long tasks.',
-      impact: performanceData.tbt <= 600 ? 'Medium - Some blocking' : 'High - Significant blocking',
-      
-      keyFactor: `Tracking Scripts Causing Main Thread Blocking (${thirdPartyScripts.length} blocking scripts)`,
-      rootCause: `Third-party tracking scripts are executing synchronously and blocking user interactions. Found ${thirdPartyScripts.length} blocking third-party scripts.`,
-      specificSolution: 'Defer tracking scripts and use web workers for analytics processing.',
-      recommendation: 'Move tracking scripts to web workers and defer analytics until after user interaction.',
-      customCodeSolution: `// Publisher custom code for tracking optimization
-const trackingOptimizer = {
-  deferTracking: () => {
-    // 1. Defer tracking scripts
-    function initTracking() {
-      document.addEventListener('click', () => {
-        if (!window.trackingLoaded) {
-          loadTrackingScripts();
-          window.trackingLoaded = true;
-        }
-      }, { once: true });
-    }
-    
-    // 2. Use web worker for analytics
-    const analyticsWorker = new Worker('/js/analytics-worker.js');
-    analyticsWorker.postMessage({ type: 'track', data: eventData });
-  }
-};`
-    });
-  }
-
-  // Third-Party Code Analysis
-  if (domAnalysis.thirdPartyScripts.length > 0) {
-    const highImpactScripts = domAnalysis.thirdPartyScripts.filter(s => s.isBlocking);
-    
-    sections.push({
-      metric: 'Third-Party Code',
-      title: 'Third-Party Code Analysis',
-      status: 'high-impact',
-      currentValue: `${domAnalysis.thirdPartyScripts.length} third-party scripts`,
-      targetValue: 'Minimize blocking scripts',
-      description: 'Analysis of external scripts and third-party integrations with performance impact validation.',
-      impact: `HIGH - ${highImpactScripts.length} blocking third-party scripts detected`,
-      
-      keyFactor: `Third-Party Scripts Blocking Main Thread Execution (${highImpactScripts.length} high-impact scripts)`,
-      rootCause: `Third-party scripts are blocking JavaScript execution and impacting performance. Found ${highImpactScripts.length} high-impact third-party scripts.`,
-      specificSolution: 'Implement lazy loading and async loading for third-party scripts.',
-      recommendation: 'Load third-party scripts asynchronously and defer non-critical ones until after page load.',
-      customCodeSolution: `// Publisher custom code for third-party optimization
-const thirdPartyOptimizer = {
-  optimizeThirdPartyWidgets: () => {
-    const widgets = document.querySelectorAll('iframe[src*="ads"], iframe[src*="social"], iframe[src*="widget"]');
-    widgets.forEach(widget => {
-      // Reserve space before loading
-      widget.style.width = '100%';
-      widget.style.height = '250px';
-      widget.style.border = 'none';
-      
-      // Load widget after page is stable
-      if (window.requestIdleCallback) {
-        requestIdleCallback(() => {
-          widget.src = widget.dataset.src;
-        });
-      } else {
-        setTimeout(() => {
-          widget.src = widget.dataset.src;
-        }, 1000);
-      }
-    });
-  }
-};`
-    });
-  }
-
-  return sections;
-}
-
-// Analyze SEO Schema markup
-function analyzeSchemaMarkup(html, targetUrl) {
-  const schemaAnalysis = {
-    schemaScore: 0,
-    schemaTypes: 0,
-    schemaIssues: '',
-    schemaRootCause: '',
-    schemaSolution: '',
-    schemaRecommendation: '',
-    schemaCode: ''
-  };
-
-  try {
-    // Extract JSON-LD schemas
-    const jsonLdMatches = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>(.*?)<\/script>/gis);
-    const microdataMatches = html.match(/itemscope[^>]*>/gi);
-    const rdfaMatches = html.match(/typeof=["'][^"']*["']/gi);
-    
-    let foundSchemas = [];
-    let schemaTypes = new Set();
-    
-    if (jsonLdMatches) {
-      jsonLdMatches.forEach(match => {
-        try {
-          const jsonContent = match.replace(/<script[^>]*>|<\/script>/gi, '');
-          const schema = JSON.parse(jsonContent);
-          if (schema['@type']) {
-            schemaTypes.add(schema['@type']);
-            foundSchemas.push(schema);
-          }
-        } catch (e) {
-          // Invalid JSON, skip
-        }
-      });
-    }
-    
-    if (microdataMatches) {
-      microdataMatches.forEach(match => {
-        const itemTypeMatch = match.match(/itemtype=["']([^"']*)["']/i);
-        if (itemTypeMatch) {
-          const type = itemTypeMatch[1].split('/').pop();
-          schemaTypes.add(type);
-        }
-      });
-    }
-    
-    if (rdfaMatches) {
-      rdfaMatches.forEach(match => {
-        const typeMatch = match.match(/typeof=["']([^"']*)["']/i);
-        if (typeMatch) {
-          const type = typeMatch[1].split(':').pop();
-          schemaTypes.add(type);
-        }
-      });
-    }
-    
-    schemaAnalysis.schemaTypes = schemaTypes.size;
-    
-    // Calculate schema score based on found types
-    const essentialTypes = ['Article', 'Organization', 'WebSite', 'BreadcrumbList'];
-    const foundEssentialTypes = essentialTypes.filter(type => schemaTypes.has(type));
-    
-    schemaAnalysis.schemaScore = Math.min(100, (foundEssentialTypes.length / essentialTypes.length) * 100 + (schemaTypes.size * 10));
-    
-    // Generate analysis based on score
-    if (schemaAnalysis.schemaScore >= 80) {
-      schemaAnalysis.schemaIssues = 'Excellent schema implementation found';
-      schemaAnalysis.schemaRootCause = 'Comprehensive structured data markup is properly implemented';
-      schemaAnalysis.schemaSolution = 'Maintain current schema implementation and consider adding more specific schemas';
-      schemaAnalysis.schemaRecommendation = 'Continue monitoring and add more specific schemas as needed';
-    } else if (schemaAnalysis.schemaScore >= 60) {
-      schemaAnalysis.schemaIssues = 'Good schema foundation but missing some essential types';
-      schemaAnalysis.schemaRootCause = 'Basic schema markup implemented but missing key content types';
-      schemaAnalysis.schemaSolution = 'Add missing essential schema types (Article, Organization, BreadcrumbList)';
-      schemaAnalysis.schemaRecommendation = 'Implement the missing essential schemas to improve SEO';
-    } else {
-      schemaAnalysis.schemaIssues = 'Missing or incomplete structured data markup';
-      schemaAnalysis.schemaRootCause = 'No structured data implementation or very basic schema markup';
-      schemaAnalysis.schemaSolution = 'Implement comprehensive structured data markup using JSON-LD format';
-      schemaAnalysis.schemaRecommendation = 'Start with basic schema types and gradually add more specific schemas';
-    }
-    
-    // Generate custom code based on what's missing
-    const missingTypes = essentialTypes.filter(type => !schemaTypes.has(type));
-    if (missingTypes.length > 0) {
-      schemaAnalysis.schemaCode = generateSchemaCode(missingTypes, targetUrl);
-    }
-    
-  } catch (error) {
-    console.error('Error analyzing schema markup:', error);
-    schemaAnalysis.schemaIssues = 'Error analyzing schema markup';
-    schemaAnalysis.schemaRootCause = 'Unable to parse existing schema markup';
-    schemaAnalysis.schemaSolution = 'Implement proper JSON-LD structured data';
-    schemaAnalysis.schemaRecommendation = 'Add valid structured data markup to improve SEO';
-  }
-  
-  return schemaAnalysis;
-}
-
-// Generate schema code based on missing types
-function generateSchemaCode(missingTypes, targetUrl) {
-  const domain = new URL(targetUrl).hostname;
-  const baseUrl = `https://${domain}`;
-  
-  let code = '';
-  
-  if (missingTypes.includes('Article')) {
-    code += `<!-- Article Schema -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Article",
-  "headline": "Your Article Title",
-  "author": {
-    "@type": "Person",
-    "name": "Author Name"
-  },
-  "publisher": {
-    "@type": "Organization",
-    "name": "Your Organization",
-    "logo": {
-      "@type": "ImageObject",
-      "url": "${baseUrl}/logo.png"
-    }
-  },
-  "datePublished": "2024-01-01",
-  "dateModified": "2024-01-01",
-  "description": "Article description",
-  "image": "${baseUrl}/article-image.jpg"
-}
-</script>
-
-`;
-  }
-  
-  if (missingTypes.includes('Organization')) {
-    code += `<!-- Organization Schema -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "Your Organization",
-  "url": "${baseUrl}",
-  "logo": "${baseUrl}/logo.png",
-  "contactPoint": {
-    "@type": "ContactPoint",
-    "telephone": "+1-123-456-7890",
-    "contactType": "customer service"
-  }
-}
-</script>
-
-`;
-  }
-  
-  if (missingTypes.includes('WebSite')) {
-    code += `<!-- Website Schema -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "Your Website",
-  "url": "${baseUrl}",
-  "potentialAction": {
-    "@type": "SearchAction",
-    "target": "${baseUrl}/search?q={search_term_string}",
-    "query-input": "required name=search_term_string"
-  }
-}
-</script>
-
-`;
-  }
-  
-  if (missingTypes.includes('BreadcrumbList')) {
-    code += `<!-- Breadcrumb Schema -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [{
-    "@type": "ListItem",
-    "position": 1,
-    "name": "Home",
-    "item": "${baseUrl}"
-  }, {
-    "@type": "ListItem",
-    "position": 2,
-    "name": "Category",
-    "item": "${baseUrl}/category"
-  }]
-}
-</script>
-
-`;
-  }
-  
-  return code.trim();
-}
-
 // Performance analysis endpoint
 app.post('/analyze', async (req, res) => {
   const { url } = req.body;
@@ -4843,68 +3217,66 @@ app.post('/analyze', async (req, res) => {
     let performanceData = null;
     let dataSource = 'unknown';
     
-    // Method 1: Try PageSpeed Insights API first (most reliable with API key)
-    console.log('🎯 Method 1: Trying PageSpeed Insights API...');
+    // Method 1: Try Direct Lighthouse first (most accurate)
+    console.log('🎯 Method 1: Trying Direct Lighthouse for accurate Core Web Vitals...');
     try {
-      const pageSpeedData = await getPageSpeedData(targetUrl);
+      performanceData = await runLighthouseDirect(targetUrl);
+      if (performanceData) {
+        dataSource = 'Direct Lighthouse';
+        console.log('✅ Direct Lighthouse analysis completed successfully - ACCURATE Core Web Vitals data');
+      }
+    } catch (lighthouseError) {
+      console.log('❌ Direct Lighthouse failed:', lighthouseError.message);
+    }
+    
+    // Method 2: Try PageSpeed Insights API (if Lighthouse failed)
+    if (!performanceData) {
+      console.log('🎯 Method 2: Trying PageSpeed Insights API...');
+    try {
+      const pageSpeedData = await getPageSpeedInsights(targetUrl);
       if (pageSpeedData && pageSpeedData.lighthouseResult) {
-        const coreWebVitals = extractCoreWebVitals(pageSpeedData);
-        if (coreWebVitals) {
         const lh = pageSpeedData.lighthouseResult;
         const audits = lh.audits;
         
+        // Extract exact PageSpeed Insights metrics
+        const lcp = audits['largest-contentful-paint']?.numericValue || 0;
+        const cls = audits['cumulative-layout-shift']?.numericValue || 0;
+        const fcp = audits['first-contentful-paint']?.numericValue || 0;
+        const tti = audits['interactive']?.numericValue || 0;
+        const tbt = audits['total-blocking-time']?.numericValue || 0;
+        const speedIndex = audits['speed-index']?.numericValue || 0;
+          const inp = audits['max-potential-fid']?.numericValue || 0;
+        
         // Generate performance issues based on actual metrics
         const performanceIssues = generatePerformanceIssuesFromLighthouse({
-            lcp: coreWebVitals.lcp, 
-            cls: coreWebVitals.cls, 
-            fcp: coreWebVitals.fcp, 
-            tti: coreWebVitals.tti, 
-            tbt: coreWebVitals.tbt, 
-            speedIndex: coreWebVitals.speedIndex, 
-            audits
+          lcp, cls, fcp, tti, tbt, speedIndex, audits
         });
         
         performanceData = {
             source: 'pagespeed-api',
-            overallScore: coreWebVitals.performanceScore || 0,
-            lcp: Math.round(coreWebVitals.lcp || 0),
-            cls: Math.round((coreWebVitals.cls || 0) * 1000) / 1000,
-            fcp: Math.round(coreWebVitals.fcp || 0),
-            tti: Math.round(coreWebVitals.tti || 0),
-            tbt: Math.round(coreWebVitals.tbt || 0),
-            speedIndex: Math.round(coreWebVitals.speedIndex || 0),
-            fid: Math.round(coreWebVitals.fid || 0),
-            inp: Math.round(coreWebVitals.fid || 0), // Using FID as INP approximation
+          overallScore: Math.round((lh.categories.performance?.score || 0) * 100),
+          lcp: Math.round(lcp),
+            cls: Math.round(cls * 1000) / 1000,
+          fcp: Math.round(fcp),
+          tti: Math.round(tti),
+          tbt: Math.round(tbt),
+          speedIndex: Math.round(speedIndex),
+            inp: Math.round(inp),
           issues: performanceIssues,
           coreWebVitals: {
-              lcp: (coreWebVitals.lcp || 0) <= 2500 ? 'good' : (coreWebVitals.lcp || 0) <= 4000 ? 'needs-improvement' : 'poor',
-              cls: (coreWebVitals.cls || 0) <= 0.1 ? 'good' : (coreWebVitals.cls || 0) <= 0.25 ? 'needs-improvement' : 'poor',
-              fcp: (coreWebVitals.fcp || 0) <= 1800 ? 'good' : (coreWebVitals.fcp || 0) <= 3000 ? 'needs-improvement' : 'poor',
-              fid: (coreWebVitals.fid || 0) <= 100 ? 'good' : (coreWebVitals.fid || 0) <= 300 ? 'needs-improvement' : 'poor',
-              inp: (coreWebVitals.fid || 0) <= 200 ? 'good' : (coreWebVitals.fid || 0) <= 500 ? 'needs-improvement' : 'poor'
+            lcp: lcp <= 2500 ? 'good' : lcp <= 4000 ? 'needs-improvement' : 'poor',
+            cls: cls <= 0.1 ? 'good' : cls <= 0.25 ? 'needs-improvement' : 'poor',
+              fcp: fcp <= 1800 ? 'good' : fcp <= 3000 ? 'needs-improvement' : 'poor',
+              inp: inp <= 200 ? 'good' : inp <= 500 ? 'needs-improvement' : 'poor'
             },
             audits: audits,
             categories: lh.categories
           };
           dataSource = 'PageSpeed API';
         console.log('✅ PageSpeed Insights data retrieved successfully');
-        }
       }
     } catch (pageSpeedError) {
         console.log('❌ PageSpeed Insights API failed:', pageSpeedError.message);
-    }
-    
-    // Method 2: Try Direct Lighthouse (if PageSpeed API failed)
-    if (!performanceData) {
-      console.log('🎯 Method 2: Trying Direct Lighthouse for accurate Core Web Vitals...');
-      try {
-        performanceData = await runLighthouseDirect(targetUrl);
-        if (performanceData) {
-          dataSource = 'Direct Lighthouse';
-          console.log('✅ Direct Lighthouse analysis completed successfully - ACCURATE Core Web Vitals data');
-        }
-      } catch (lighthouseError) {
-        console.log('❌ Direct Lighthouse failed:', lighthouseError.message);
       }
     }
     
@@ -4918,121 +3290,13 @@ app.post('/analyze', async (req, res) => {
     
     console.log(`📊 Performance data source: ${dataSource}`);
     
-    // Generate comprehensive performance categories
-    const performanceCategories = generatePerformanceCategories(performanceData);
-    
-    // Generate custom code analysis
-    const customCodeAnalysis = analyzeCustomCodeAndThirdParty(html, targetUrl);
-    
-    // Generate comprehensive analysis sections like the shared images
-    const detailedAnalysis = generateComprehensiveAnalysis(performanceData, html, targetUrl);
-    
-    // Generate SEO Schema analysis
-    const schemaAnalysis = analyzeSchemaMarkup(html, targetUrl);
-    
-    // Generate AI analysis
-    const aiAnalysis = await generateAIPerformanceAnalysis(performanceData, targetUrl);
-    
     const response = {
       url: targetUrl,
       timestamp: new Date().toISOString(),
       analysisTime: Date.now() - startTime,
       dataSource: dataSource,
-      overallScore: performanceData.overallScore,
-      
-      // Core Web Vitals
-      coreWebVitals: {
-        lcp: performanceData.lcp,
-        cls: performanceData.cls,
-        fcp: performanceData.fcp,
-        tti: performanceData.tti,
-        tbt: performanceData.tbt,
-        speedIndex: performanceData.speedIndex,
-        fid: performanceData.fid,
-        inp: performanceData.inp
-      },
-      
-      // Performance Categories
-      performanceCategories: performanceCategories,
-      
-      // Custom Code Analysis
-      customCodeAnalysis: customCodeAnalysis,
-      
-      // Detailed Analysis Sections (like shared images)
-      detailedAnalysis: detailedAnalysis,
-      
-      // AI Analysis
-      aiAnalysis: aiAnalysis,
-      
-      // Legacy structure for downloadable report compatibility
-      performance: {
-        overallScore: performanceData.overallScore,
-        lcp: performanceData.lcp,
-        cls: performanceData.cls,
-        fcp: performanceData.fcp,
-        tti: performanceData.tti,
-        tbt: performanceData.tbt,
-        speedIndex: performanceData.speedIndex,
-        fid: performanceData.fid,
-        inp: performanceData.inp,
-        issues: performanceData.issues || [],
-        coreWebVitals: performanceData.coreWebVitals || {},
-        
-        // Detailed analysis for downloadable report
-        publisherCode: {
-          title: "Publisher Code - Inline Scripts",
-          summary: `Found ${customCodeAnalysis.summary?.realMetrics?.inlineScripts || 0} inline scripts`,
-          scripts: customCodeAnalysis.topPriorityIssues?.filter(issue => 
-            issue.title.includes('Inline Scripts') || issue.title.includes('Blocking')
-          ) || [],
-          analysis: customCodeAnalysis.summary || {}
-        },
-        
-        thirdPartyCode: {
-          title: "Third-Party Code - External Scripts & Tracking",
-          summary: `Found ${customCodeAnalysis.summary?.realMetrics?.externalScripts || 0} external scripts and ${customCodeAnalysis.summary?.realMetrics?.thirdPartyDomains || 0} third-party domains`,
-          scripts: customCodeAnalysis.topPriorityIssues?.filter(issue => 
-            issue.title.includes('External') || issue.title.includes('Third-Party')
-          ) || [],
-          analysis: customCodeAnalysis.summary || {}
-        },
-        
-        highPriorityIssues: {
-          title: "HIGH PRIORITY Performance Issues & Solutions",
-          summary: `Found ${customCodeAnalysis.topPriorityIssues?.length || 0} high priority issues`,
-          issues: customCodeAnalysis.topPriorityIssues || [],
-          analysis: customCodeAnalysis.summary || {}
-        },
-        
-        // SEO Schema Analysis
-        schemaScore: schemaAnalysis.schemaScore,
-        schemaTypes: schemaAnalysis.schemaTypes,
-        schemaIssues: schemaAnalysis.schemaIssues,
-        schemaRootCause: schemaAnalysis.schemaRootCause,
-        schemaSolution: schemaAnalysis.schemaSolution,
-        schemaRecommendation: schemaAnalysis.schemaRecommendation,
-        schemaCode: schemaAnalysis.schemaCode,
-        
-        // AI suggestions for downloadable report
-        aiSuggestions: aiAnalysis ? {
-          title: "AI Performance Recommendations",
-          summary: aiAnalysis.summary || "AI analysis completed",
-          recommendations: aiAnalysis.recommendations || [],
-          criticalIssues: aiAnalysis.criticalIssues || [],
-          dataSource: aiAnalysis.dataSource || "AI Analysis"
-        } : null,
-        
-        // Custom code and third party analysis
-        customCodeAndThirdParty: customCodeAnalysis
-      },
-      
-      // Summary
-      summary: {
-        overallScore: performanceData.overallScore,
-        dataSource: dataSource,
-        analysisTime: Date.now() - startTime,
-        timestamp: new Date().toISOString()
-      }
+      performance: performanceData,
+      overallScore: performanceData.overallScore
     };
     
     console.log(`Performance analysis completed for ${targetUrl} in ${response.analysisTime}ms`);
