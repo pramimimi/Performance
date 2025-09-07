@@ -1204,6 +1204,131 @@ analyticsWorker.postMessage({ type: 'track', data: eventData });
   return recommendations;
 }
 
+// Generate comprehensive diagnostics for website analysis
+function generateComprehensiveDiagnostics(html, targetUrl) {
+  const diagnostics = [];
+  
+  try {
+    // Check for missing meta description
+    const metaDescription = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
+    if (!metaDescription) {
+      diagnostics.push({
+        key: 'missing_meta_description',
+        severity: 'warning',
+        message: 'Missing meta description',
+        explanation: 'Meta descriptions help search engines understand your page content and appear in search results.',
+        fix: 'Add a meta description tag to your HTML head section',
+        impact: 'Medium - SEO and search result appearance',
+        code: `<meta name="description" content="Your page description here (150-160 characters)">`
+      });
+    }
+
+    // Check for missing title tag
+    const titleTag = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+    if (!titleTag || titleTag[1].trim().length === 0) {
+      diagnostics.push({
+        key: 'missing_title',
+        severity: 'critical',
+        message: 'Missing or empty title tag',
+        explanation: 'Title tags are crucial for SEO and appear in browser tabs and search results.',
+        fix: 'Add a descriptive title tag to your HTML head section',
+        impact: 'High - Essential for SEO and user experience',
+        code: `<title>Your Page Title Here (50-60 characters)</title>`
+      });
+    }
+
+    // Check for missing H1 tag
+    const h1Tag = html.match(/<h1[^>]*>([^<]*)<\/h1>/i);
+    if (!h1Tag) {
+      diagnostics.push({
+        key: 'missing_h1',
+        severity: 'warning',
+        message: 'Missing H1 heading',
+        explanation: 'H1 tags help structure your content and improve SEO.',
+        fix: 'Add an H1 tag to your main content',
+        impact: 'Medium - SEO and content structure',
+        code: `<h1>Your Main Heading</h1>`
+      });
+    }
+
+    // Check for missing favicon
+    const favicon = html.match(/<link[^>]*rel=["'](?:shortcut )?icon["'][^>]*>/i);
+    if (!favicon) {
+      diagnostics.push({
+        key: 'missing_favicon',
+        severity: 'info',
+        message: 'Missing favicon',
+        explanation: 'Favicons improve brand recognition and user experience.',
+        fix: 'Add a favicon link to your HTML head section',
+        impact: 'Low - Brand recognition and user experience',
+        code: `<link rel="icon" type="image/x-icon" href="/favicon.ico">`
+      });
+    }
+
+    // Check for missing Open Graph tags
+    const ogTitle = html.match(/<meta[^>]*property=["']og:title["'][^>]*>/i);
+    if (!ogTitle) {
+      diagnostics.push({
+        key: 'missing_og_title',
+        severity: 'info',
+        message: 'Missing Open Graph title',
+        explanation: 'Open Graph tags improve how your page appears when shared on social media.',
+        fix: 'Add Open Graph meta tags to your HTML head section',
+        impact: 'Low - Social media sharing appearance',
+        code: `<meta property="og:title" content="Your Page Title">`
+      });
+    }
+
+    // Check for missing canonical URL
+    const canonical = html.match(/<link[^>]*rel=["']canonical["'][^>]*>/i);
+    if (!canonical) {
+      diagnostics.push({
+        key: 'missing_canonical',
+        severity: 'info',
+        message: 'Missing canonical URL',
+        explanation: 'Canonical URLs help prevent duplicate content issues and improve SEO.',
+        fix: 'Add a canonical link tag to your HTML head section',
+        impact: 'Low - SEO and duplicate content prevention',
+        code: `<link rel="canonical" href="${targetUrl}">`
+      });
+    }
+
+    // Check for images without alt text
+    const images = html.match(/<img[^>]*>/gi) || [];
+    const imagesWithoutAlt = images.filter(img => !img.match(/alt=["'][^"']*["']/i)).length;
+    if (imagesWithoutAlt > 0) {
+      diagnostics.push({
+        key: 'images_missing_alt',
+        severity: 'warning',
+        message: `${imagesWithoutAlt} images missing alt text`,
+        explanation: 'Alt text improves accessibility and helps with SEO.',
+        fix: 'Add descriptive alt text to all images',
+        impact: 'Medium - Accessibility and SEO',
+        code: `<img src="image.jpg" alt="Descriptive text about the image">`
+      });
+    }
+
+    // Check for missing viewport meta tag
+    const viewport = html.match(/<meta[^>]*name=["']viewport["'][^>]*>/i);
+    if (!viewport) {
+      diagnostics.push({
+        key: 'missing_viewport',
+        severity: 'critical',
+        message: 'Missing viewport meta tag',
+        explanation: 'Viewport meta tag is essential for responsive design and mobile optimization.',
+        fix: 'Add viewport meta tag to your HTML head section',
+        impact: 'High - Mobile responsiveness and SEO',
+        code: `<meta name="viewport" content="width=device-width, initial-scale=1.0">`
+      });
+    }
+
+  } catch (error) {
+    console.error('Error generating diagnostics:', error);
+  }
+
+  return diagnostics;
+}
+
 // Enhanced custom code and third-party analysis
 function analyzeCustomCodeAndThirdParty(html, targetUrl) {
   try {
@@ -3278,6 +3403,15 @@ app.post('/analyze', async (req, res) => {
           customCodeAnalysis = {};
         }
 
+        // Generate comprehensive diagnostics for PageSpeed API data
+        let diagnostics = [];
+        try {
+          diagnostics = generateComprehensiveDiagnostics(html, url);
+        } catch (error) {
+          console.error('Error generating diagnostics for PageSpeed API:', error);
+          diagnostics = [];
+        }
+
         performanceData = {
             source: 'pagespeed-api',
           overallScore: performanceScore,
@@ -3308,7 +3442,9 @@ app.post('/analyze', async (req, res) => {
             // Add AI suggestions to PageSpeed API response
             aiSuggestions: aiSuggestions,
             // Add custom code analysis to PageSpeed API response
-            customCodeAndThirdParty: customCodeAnalysis
+            customCodeAndThirdParty: customCodeAnalysis,
+            // Add comprehensive diagnostics to PageSpeed API response
+            diagnostics: diagnostics
           };
           dataSource = 'PageSpeed API';
         console.log('✅ PageSpeed Insights data retrieved successfully');
