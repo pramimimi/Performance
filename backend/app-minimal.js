@@ -3008,7 +3008,7 @@ async function getPageSpeedInsights(targetUrl, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       // Build API URL with optional API key
-      let apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&category=performance&strategy=mobile`;
+      let apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&category=performance&category=accessibility&category=best-practices&category=seo&strategy=mobile`;
       
       if (PAGESPEED_API_KEY) {
         apiUrl += `&key=${encodeURIComponent(PAGESPEED_API_KEY)}`;
@@ -3252,25 +3252,63 @@ app.post('/analyze', async (req, res) => {
           lcp, cls, fcp, tti, tbt, speedIndex, audits
         });
         
+        // Extract scores from PageSpeed API response and format exactly like fallback
+        const performanceScore = Math.round((lh.categories?.performance?.score || 0) * 100);
+        const accessibilityScore = Math.round((lh.categories?.accessibility?.score || 0) * 100);
+        const bestPracticesScore = Math.round((lh.categories?.['best-practices']?.score || 0) * 100);
+        const seoScore = Math.round((lh.categories?.seo?.score || 0) * 100);
+
+        // Generate AI suggestions for PageSpeed API data
+        let aiSuggestions = {};
+        try {
+          aiSuggestions = generateAIPerformanceSuggestions({
+            lcp, cls, fcp, tti, tbt, speedIndex, overallScore: performanceScore
+          }, html, url);
+        } catch (error) {
+          console.error('Error generating AI suggestions for PageSpeed API:', error);
+          aiSuggestions = {};
+        }
+
+        // Generate custom code analysis for PageSpeed API data
+        let customCodeAnalysis = {};
+        try {
+          customCodeAnalysis = analyzeCustomCodeAndThirdParty(html, url);
+        } catch (error) {
+          console.error('Error generating custom code analysis for PageSpeed API:', error);
+          customCodeAnalysis = {};
+        }
+
         performanceData = {
             source: 'pagespeed-api',
-          overallScore: Math.round((lh.categories.performance?.score || 0) * 100),
+          overallScore: performanceScore,
           lcp: Math.round(lcp),
             cls: Math.round(cls * 1000) / 1000,
           fcp: Math.round(fcp),
           tti: Math.round(tti),
           tbt: Math.round(tbt),
           speedIndex: Math.round(speedIndex),
+          fid: Math.round(fid),
             inp: Math.round(inp),
           issues: performanceIssues,
           coreWebVitals: {
             lcp: lcp <= 2500 ? 'good' : lcp <= 4000 ? 'needs-improvement' : 'poor',
             cls: cls <= 0.1 ? 'good' : cls <= 0.25 ? 'needs-improvement' : 'poor',
               fcp: fcp <= 1800 ? 'good' : fcp <= 3000 ? 'needs-improvement' : 'poor',
+              fid: fid <= 100 ? 'good' : fid <= 300 ? 'needs-improvement' : 'poor',
               inp: inp <= 200 ? 'good' : inp <= 500 ? 'needs-improvement' : 'poor'
             },
             audits: audits,
-            categories: lh.categories
+            // Maintain exact same structure as fallback analysis
+            categories: { 
+              performance: performanceScore, 
+              accessibility: accessibilityScore, 
+              bestPractices: bestPracticesScore, 
+              seo: seoScore 
+            },
+            // Add AI suggestions to PageSpeed API response
+            aiSuggestions: aiSuggestions,
+            // Add custom code analysis to PageSpeed API response
+            customCodeAndThirdParty: customCodeAnalysis
           };
           dataSource = 'PageSpeed API';
         console.log('✅ PageSpeed Insights data retrieved successfully');
