@@ -3149,6 +3149,8 @@ async function getPageSpeedInsights(targetUrl, retries = 3) {
         }
       });
       
+      console.log(`📡 PageSpeed API Response Status: ${response.status}`);
+      
       if (response.status === 429) {
         const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff
         console.log(`⏳ Rate limited. Waiting ${waitTime}ms before retry...`);
@@ -3159,11 +3161,12 @@ async function getPageSpeedInsights(targetUrl, retries = 3) {
       }
       
     if (!response.ok) {
+        console.log(`❌ PageSpeed API Error: ${response.status} - ${response.statusText}`);
         throw new Error(`PageSpeed API error: ${response.status} - ${response.statusText}`);
     }
     
     const data = await response.json();
-      console.log('✅ PageSpeed API call successful');
+    console.log('✅ PageSpeed API call successful, data received');
     return data;
       
   } catch (error) {
@@ -3343,23 +3346,128 @@ app.post('/analyze', async (req, res) => {
     let performanceData = null;
     let dataSource = 'unknown';
     
-    // Method 1: Try Direct Lighthouse first (most accurate)
-    console.log('🎯 Method 1: Trying Direct Lighthouse for accurate Core Web Vitals...');
-    try {
-      performanceData = await runLighthouseDirect(targetUrl);
-      if (performanceData) {
-        dataSource = 'Direct Lighthouse';
-        console.log('✅ Direct Lighthouse analysis completed successfully - ACCURATE Core Web Vitals data');
-      }
-    } catch (lighthouseError) {
-      console.log('❌ Direct Lighthouse failed:', lighthouseError.message);
+    // Method 1: Try PageSpeed Insights API first (when API key is available)
+    if (PAGESPEED_API_KEY) {
+      console.log('🎯 Method 1: Trying PageSpeed Insights API (with API key)...');
+      try {
+        const pageSpeedData = await getPageSpeedInsights(targetUrl);
+        console.log('📊 PageSpeed API Response:', pageSpeedData ? 'Success' : 'Failed');
+        if (pageSpeedData && pageSpeedData.lighthouseResult) {
+          const lh = pageSpeedData.lighthouseResult;
+          const audits = lh.audits;
+          
+          // Extract exact PageSpeed Insights metrics
+          const lcp = audits['largest-contentful-paint']?.numericValue || 0;
+          const cls = audits['cumulative-layout-shift']?.numericValue || 0;
+          const fcp = audits['first-contentful-paint']?.numericValue || 0;
+          const tti = audits['interactive']?.numericValue || 0;
+          const tbt = audits['total-blocking-time']?.numericValue || 0;
+          const speedIndex = audits['speed-index']?.numericValue || 0;
+          const fid = audits['max-potential-fid']?.numericValue || 0;
+          const inp = audits['max-potential-fid']?.numericValue || 0;
+          
+          // Generate performance issues based on actual metrics
+          const performanceIssues = generatePerformanceIssuesFromLighthouse({
+            lcp, cls, fcp, tti, tbt, speedIndex, audits
+          });
+          
+          // Extract scores from PageSpeed API response and format exactly like fallback
+          const performanceScore = Math.round((lh.categories?.performance?.score || 0) * 100);
+          const accessibilityScore = Math.round((lh.categories?.accessibility?.score || 0) * 100);
+          const bestPracticesScore = Math.round((lh.categories?.['best-practices']?.score || 0) * 100);
+          const seoScore = Math.round((lh.categories?.seo?.score || 0) * 100);
+
+          // Generate AI suggestions for PageSpeed API data
+          let aiSuggestions = {};
+          try {
+            aiSuggestions = generateAIPerformanceSuggestions({
+              lcp, cls, fcp, tti, tbt, speedIndex, overallScore: performanceScore
+            }, html, url);
+          } catch (error) {
+            console.error('Error generating AI suggestions for PageSpeed API:', error);
+            aiSuggestions = {};
+          }
+
+          // Generate custom code analysis for PageSpeed API data
+          let customCodeAnalysis = {};
+          try {
+            customCodeAnalysis = analyzeCustomCodeAndThirdParty(html, url);
+          } catch (error) {
+            console.error('Error generating custom code analysis for PageSpeed API:', error);
+            customCodeAnalysis = {};
+          }
+
+          // Generate comprehensive diagnostics for PageSpeed API data
+          let diagnostics = [];
+          try {
+            diagnostics = generateComprehensiveDiagnostics(html, url);
+          } catch (error) {
+            console.error('Error generating diagnostics for PageSpeed API:', error);
+            diagnostics = [];
+          }
+
+          performanceData = {
+              source: 'pagespeed-api',
+            overallScore: performanceScore,
+            lcp: Math.round(lcp),
+              cls: Math.round(cls * 1000) / 1000,
+            fcp: Math.round(fcp),
+            tti: Math.round(tti),
+            tbt: Math.round(tbt),
+            speedIndex: Math.round(speedIndex),
+            fid: Math.round(fid),
+              inp: Math.round(inp),
+            issues: performanceIssues,
+            coreWebVitals: {
+              lcp: lcp <= 2500 ? 'good' : lcp <= 4000 ? 'needs-improvement' : 'poor',
+              cls: cls <= 0.1 ? 'good' : cls <= 0.25 ? 'needs-improvement' : 'poor',
+                fcp: fcp <= 1800 ? 'good' : fcp <= 3000 ? 'needs-improvement' : 'poor',
+                fid: fid <= 100 ? 'good' : fid <= 300 ? 'needs-improvement' : 'poor',
+                inp: inp <= 200 ? 'good' : inp <= 500 ? 'needs-improvement' : 'poor'
+              },
+              audits: audits,
+              // Maintain exact same structure as fallback analysis
+              categories: { 
+                performance: performanceScore, 
+                accessibility: accessibilityScore, 
+                bestPractices: bestPracticesScore, 
+                seo: seoScore 
+              },
+              // Add AI suggestions to PageSpeed API response
+              aiSuggestions: aiSuggestions,
+              // Add custom code analysis to PageSpeed API response
+              customCodeAndThirdParty: customCodeAnalysis,
+              // Add comprehensive diagnostics to PageSpeed API response
+              diagnostics: diagnostics
+            };
+            dataSource = 'PageSpeed API';
+          console.log('✅ PageSpeed Insights data retrieved successfully');
+        }
+      } catch (pageSpeedError) {
+          console.log('❌ PageSpeed Insights API failed:', pageSpeedError.message);
+        }
     }
     
-    // Method 2: Try PageSpeed Insights API (if Lighthouse failed)
+    // Method 2: Try Direct Lighthouse (if PageSpeed API failed or no API key)
     if (!performanceData) {
+      console.log('🎯 Method 2: Trying Direct Lighthouse for accurate Core Web Vitals...');
+      try {
+        performanceData = await runLighthouseDirect(targetUrl);
+        if (performanceData) {
+          dataSource = 'Direct Lighthouse';
+          console.log('✅ Direct Lighthouse analysis completed successfully - ACCURATE Core Web Vitals data');
+        }
+      } catch (lighthouseError) {
+        console.log('❌ Direct Lighthouse failed:', lighthouseError.message);
+      }
+    }
+    
+    // Method 3: Try PageSpeed Insights API (if both above failed and no API key was used)
+    if (!performanceData && !PAGESPEED_API_KEY) {
       console.log('🎯 Method 2: Trying PageSpeed Insights API...');
     try {
       const pageSpeedData = await getPageSpeedInsights(targetUrl);
+      console.log('📊 PageSpeed API Response:', pageSpeedData ? 'Success' : 'Failed');
       if (pageSpeedData && pageSpeedData.lighthouseResult) {
         const lh = pageSpeedData.lighthouseResult;
         const audits = lh.audits;
