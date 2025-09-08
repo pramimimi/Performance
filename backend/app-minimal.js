@@ -1417,7 +1417,68 @@ function analyzeCustomCodeAndThirdParty(html, targetUrl) {
             size: match.length,
             impact: 'Medium - Publisher custom widget may cause layout shifts',
             performanceScore: 2,
-            category: 'layout-shift'
+            category: 'layout-shift',
+            customCodeSolution: `// Top Impact Widget Optimization for: ${match.substring(0, 30)}...
+const widgetOptimizer_${Date.now()} = {
+  // Widget-specific optimization
+  optimizeWidget: () => {
+    const widget = document.querySelector('${match.includes('class=') ? match.match(/class="([^"]*)"/)?.[1] || '[class*="widget"]' : '[class*="widget"]'}');
+    if (widget) {
+      // Reserve space to prevent layout shift
+      widget.style.minHeight = '100px';
+      widget.style.width = '100%';
+      
+      // Add loading state
+      widget.setAttribute('data-widget-loading', 'true');
+      
+      // Optimize child elements
+      const images = widget.querySelectorAll('img');
+      images.forEach(img => {
+        if (!img.width || !img.height) {
+          img.style.width = '100%';
+          img.style.height = 'auto';
+        }
+        img.loading = 'lazy';
+      });
+      
+      // Defer non-critical scripts
+      const scripts = widget.querySelectorAll('script');
+      scripts.forEach(script => {
+        if (!script.async && !script.defer) {
+          script.defer = true;
+        }
+      });
+      
+      // Mark as optimized
+      widget.setAttribute('data-optimized', 'true');
+      widget.addEventListener('load', () => {
+        widget.setAttribute('data-widget-loading', 'false');
+      });
+    }
+  },
+  
+  // Performance monitoring
+  monitorPerformance: () => {
+    if ('PerformanceObserver' in window) {
+      const observer = new PerformanceObserver((list) => {
+        list.getEntries().forEach(entry => {
+          if (entry.name.includes('widget')) {
+            console.log('Widget Performance:', entry.duration + 'ms');
+          }
+        });
+      });
+      observer.observe({ entryTypes: ['resource'] });
+    }
+  },
+  
+  init: () => {
+    widgetOptimizer_${Date.now()}.optimizeWidget();
+    widgetOptimizer_${Date.now()}.monitorPerformance();
+  }
+};
+
+// Initialize widget optimization
+widgetOptimizer_${Date.now()}.init();`
           };
           customCodeAnalysis.publisherCode.customWidgets.push(widget);
           publisherScore += 2;
@@ -1805,12 +1866,7 @@ const fontOptimizer = {
     
     // Add font-display swap to existing font faces
     const style = document.createElement('style');
-    style.textContent = \`
-      @font-face {
-        font-family: 'CustomFont';
-        font-display: swap;
-      }
-    \`;
+    style.textContent = '@font-face { font-family: \\'CustomFont\\'; font-display: swap; }';
     document.head.appendChild(style);
   }
 };`
@@ -1820,29 +1876,197 @@ const fontOptimizer = {
                 rootCause: 'External widgets (ads, social media embeds, chat widgets) load at unpredictable times and sizes.',
                 specificSolution: 'Reserve space for widgets and use lazy loading to prevent layout shifts.',
                 recommendation: 'Always specify dimensions for third-party content and load it below the fold when possible.',
-                customCodeSolution: `// Publisher custom code for third-party widget optimization
-const widgetOptimizer = {
+                customCodeSolution: `// Enhanced Top Impact Widgets Optimization Solution
+const topImpactWidgetOptimizer = {
+  // Configuration for different widget types
+  widgetConfig: {
+    'ads': { height: '250px', priority: 'low', lazy: true },
+    'social': { height: '400px', priority: 'medium', lazy: true },
+    'chat': { height: '60px', priority: 'high', lazy: false },
+    'analytics': { height: '1px', priority: 'low', lazy: true },
+    'widget': { height: '300px', priority: 'medium', lazy: true }
+  },
+
+  // Initialize widget optimization
+  init: () => {
+    topImpactWidgetOptimizer.optimizeThirdPartyWidgets();
+    topImpactWidgetOptimizer.optimizePublisherWidgets();
+    topImpactWidgetOptimizer.setupIntersectionObserver();
+    topImpactWidgetOptimizer.monitorWidgetPerformance();
+  },
+
+  // Optimize third-party widgets (ads, social media, etc.)
   optimizeThirdPartyWidgets: () => {
-    const widgets = document.querySelectorAll('iframe[src*="ads"], iframe[src*="social"], iframe[src*="widget"]');
-    widgets.forEach(widget => {
-      // Reserve space before loading
-      widget.style.width = '100%';
-      widget.style.height = '250px'; // Standard ad height
-      widget.style.border = 'none';
-      
-      // Load widget after page is stable
-      if (window.requestIdleCallback) {
-        requestIdleCallback(() => {
-          widget.src = widget.dataset.src;
-        });
-      } else {
-        setTimeout(() => {
-          widget.src = widget.dataset.src;
-        }, 1000);
-      }
+    const thirdPartySelectors = [
+      'iframe[src*="ads"]',
+      'iframe[src*="social"]', 
+      'iframe[src*="widget"]',
+      'iframe[src*="embed"]',
+      'script[src*="analytics"]',
+      'script[src*="tracking"]',
+      'div[class*="widget"]',
+      'div[id*="widget"]'
+    ];
+
+    thirdPartySelectors.forEach(selector => {
+      const widgets = document.querySelectorAll(selector);
+      widgets.forEach(widget => {
+        const widgetType = topImpactWidgetOptimizer.detectWidgetType(widget);
+        const config = topImpactWidgetOptimizer.widgetConfig[widgetType] || topImpactWidgetOptimizer.widgetConfig['widget'];
+        
+        // Reserve space to prevent layout shift
+        if (widget.tagName === 'IFRAME') {
+          widget.style.width = '100%';
+          widget.style.height = config.height;
+          widget.style.border = 'none';
+          widget.style.background = '#f5f5f5';
+          
+          // Lazy load if configured
+          if (config.lazy) {
+            widget.dataset.src = widget.src;
+            widget.src = 'data:text/html,<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">Loading...</div>';
+          }
+        }
+        
+        // Add performance attributes
+        widget.setAttribute('data-widget-type', widgetType);
+        widget.setAttribute('data-priority', config.priority);
+        widget.setAttribute('data-optimized', 'true');
+      });
     });
+  },
+
+  // Optimize publisher custom widgets
+  optimizePublisherWidgets: () => {
+    const publisherWidgets = document.querySelectorAll('[class*="widget"], [id*="widget"], [data-widget]');
+    publisherWidgets.forEach(widget => {
+      // Add container dimensions
+      if (!widget.style.width && !widget.style.height) {
+        widget.style.minHeight = '100px';
+        widget.style.width = '100%';
+      }
+      
+      // Optimize custom scripts within widgets
+      const scripts = widget.querySelectorAll('script');
+      scripts.forEach(script => {
+        if (!script.async && !script.defer) {
+          script.defer = true;
+        }
+      });
+      
+      // Add loading state
+      widget.setAttribute('data-loading', 'true');
+      widget.addEventListener('load', () => {
+        widget.setAttribute('data-loading', 'false');
+      });
+    });
+  },
+
+  // Setup intersection observer for lazy loading
+  setupIntersectionObserver: () => {
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const widget = entry.target;
+            const priority = widget.getAttribute('data-priority');
+            
+            // Load based on priority
+            if (priority === 'high') {
+              topImpactWidgetOptimizer.loadWidget(widget);
+            } else if (priority === 'medium') {
+              setTimeout(() => topImpactWidgetOptimizer.loadWidget(widget), 500);
+            } else {
+              if (window.requestIdleCallback) {
+                requestIdleCallback(() => topImpactWidgetOptimizer.loadWidget(widget));
+              } else {
+                setTimeout(() => topImpactWidgetOptimizer.loadWidget(widget), 1000);
+              }
+            }
+            
+            observer.unobserve(widget);
+          }
+        });
+      }, { rootMargin: '50px' });
+
+      // Observe all lazy widgets
+      document.querySelectorAll('[data-optimized="true"]').forEach(widget => {
+        observer.observe(widget);
+      });
+    }
+  },
+
+  // Load individual widget
+  loadWidget: (widget) => {
+    if (widget.tagName === 'IFRAME' && widget.dataset.src) {
+      widget.src = widget.dataset.src;
+    }
+    
+    // Trigger custom load event
+    widget.dispatchEvent(new CustomEvent('widgetLoad', { 
+      detail: { 
+        type: widget.getAttribute('data-widget-type'),
+        priority: widget.getAttribute('data-priority')
+      }
+    }));
+  },
+
+  // Detect widget type based on attributes
+  detectWidgetType: (widget) => {
+    const src = widget.src || widget.getAttribute('src') || '';
+    const className = widget.className || '';
+    const id = widget.id || '';
+    
+    if (src.includes('ads') || className.includes('ad') || id.includes('ad')) return 'ads';
+    if (src.includes('social') || className.includes('social') || id.includes('social')) return 'social';
+    if (src.includes('chat') || className.includes('chat') || id.includes('chat')) return 'chat';
+    if (src.includes('analytics') || src.includes('tracking')) return 'analytics';
+    return 'widget';
+  },
+
+  // Monitor widget performance
+  monitorWidgetPerformance: () => {
+    if ('PerformanceObserver' in window) {
+      const observer = new PerformanceObserver((list) => {
+        list.getEntries().forEach(entry => {
+          if (entry.name.includes('widget') || entry.name.includes('iframe')) {
+            console.log('Widget Performance:', {
+              name: entry.name,
+              duration: entry.duration,
+              startTime: entry.startTime
+            });
+          }
+        });
+      });
+      
+      observer.observe({ entryTypes: ['resource', 'navigation'] });
+    }
+  },
+
+  // Get widget performance report
+  getPerformanceReport: () => {
+    const widgets = document.querySelectorAll('[data-optimized="true"]');
+    const report = {
+      totalWidgets: widgets.length,
+      loadedWidgets: document.querySelectorAll('[data-loading="false"]').length,
+      widgetTypes: {}
+    };
+    
+    widgets.forEach(widget => {
+      const type = widget.getAttribute('data-widget-type');
+      report.widgetTypes[type] = (report.widgetTypes[type] || 0) + 1;
+    });
+    
+    return report;
   }
-};`
+};
+
+// Initialize on DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', topImpactWidgetOptimizer.init);
+} else {
+  topImpactWidgetOptimizer.init();
+}`
               }
             ]
           }

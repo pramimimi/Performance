@@ -39,6 +39,45 @@
             border-radius: 8px;
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
         }
+        .widget-solution {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8fafc;
+            border-left: 4px solid #3b82f6;
+            border-radius: 4px;
+        }
+        .solution-header {
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 8px;
+        }
+        .solution-code pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        .widget-optimization-guide {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+        }
+        .optimization-code pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 10px;
+            overflow-x: auto;
+            margin: 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 min-h-screen">
@@ -1326,6 +1365,14 @@
                                         <div class="widget-item">
                                             <div class="widget-pattern">${widget.pattern.length > 50 ? widget.pattern.substring(0, 50) + '...' : widget.pattern}</div>
                                             <div class="widget-impact">Score: ${widget.performanceScore}</div>
+                                            ${widget.customCodeSolution ? `
+                                                <div class="widget-solution">
+                                                    <div class="solution-header">💻 Custom Code Solution:</div>
+                                                    <div class="solution-code">
+                                                        <pre><code>${widget.customCodeSolution}</code></pre>
+                                                    </div>
+                                                </div>
+                                            ` : ''}
                                         </div>
                                     `).join('')}
                                 ${customCodeAnalysis.publisherCode.customWidgets.length > 10 ? `
@@ -1333,6 +1380,203 @@
                                         <div class="widget-pattern">... and ${customCodeAnalysis.publisherCode.customWidgets.length - 10} more widgets</div>
                                     </div>
                                 ` : ''}
+                            </div>
+                            
+                            <div class="widget-optimization-guide">
+                                <h4>🚀 Complete Widget Optimization Solution:</h4>
+                                <div class="optimization-code">
+                                    <pre><code>// Enhanced Top Impact Widgets Optimization Solution
+const topImpactWidgetOptimizer = {
+  // Configuration for different widget types
+  widgetConfig: {
+    'ads': { height: '250px', priority: 'low', lazy: true },
+    'social': { height: '400px', priority: 'medium', lazy: true },
+    'chat': { height: '60px', priority: 'high', lazy: false },
+    'analytics': { height: '1px', priority: 'low', lazy: true },
+    'widget': { height: '300px', priority: 'medium', lazy: true }
+  },
+
+  // Initialize widget optimization
+  init: () => {
+    topImpactWidgetOptimizer.optimizeThirdPartyWidgets();
+    topImpactWidgetOptimizer.optimizePublisherWidgets();
+    topImpactWidgetOptimizer.setupIntersectionObserver();
+    topImpactWidgetOptimizer.monitorWidgetPerformance();
+  },
+
+  // Optimize third-party widgets (ads, social media, etc.)
+  optimizeThirdPartyWidgets: () => {
+    const thirdPartySelectors = [
+      'iframe[src*="ads"]',
+      'iframe[src*="social"]', 
+      'iframe[src*="widget"]',
+      'iframe[src*="embed"]',
+      'script[src*="analytics"]',
+      'script[src*="tracking"]',
+      'div[class*="widget"]',
+      'div[id*="widget"]'
+    ];
+
+    thirdPartySelectors.forEach(selector => {
+      const widgets = document.querySelectorAll(selector);
+      widgets.forEach(widget => {
+        const widgetType = topImpactWidgetOptimizer.detectWidgetType(widget);
+        const config = topImpactWidgetOptimizer.widgetConfig[widgetType] || topImpactWidgetOptimizer.widgetConfig['widget'];
+        
+        // Reserve space to prevent layout shift
+        if (widget.tagName === 'IFRAME') {
+          widget.style.width = '100%';
+          widget.style.height = config.height;
+          widget.style.border = 'none';
+          widget.style.background = '#f5f5f5';
+          
+          // Lazy load if configured
+          if (config.lazy) {
+            widget.dataset.src = widget.src;
+            widget.src = 'data:text/html,<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">Loading...</div>';
+          }
+        }
+        
+        // Add performance attributes
+        widget.setAttribute('data-widget-type', widgetType);
+        widget.setAttribute('data-priority', config.priority);
+        widget.setAttribute('data-optimized', 'true');
+      });
+    });
+  },
+
+  // Optimize publisher custom widgets
+  optimizePublisherWidgets: () => {
+    const publisherWidgets = document.querySelectorAll('[class*="widget"], [id*="widget"], [data-widget]');
+    publisherWidgets.forEach(widget => {
+      // Add container dimensions
+      if (!widget.style.width && !widget.style.height) {
+        widget.style.minHeight = '100px';
+        widget.style.width = '100%';
+      }
+      
+      // Optimize custom scripts within widgets
+      const scripts = widget.querySelectorAll('script');
+      scripts.forEach(script => {
+        if (!script.async && !script.defer) {
+          script.defer = true;
+        }
+      });
+      
+      // Add loading state
+      widget.setAttribute('data-loading', 'true');
+      widget.addEventListener('load', () => {
+        widget.setAttribute('data-loading', 'false');
+      });
+    });
+  },
+
+  // Setup intersection observer for lazy loading
+  setupIntersectionObserver: () => {
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const widget = entry.target;
+            const priority = widget.getAttribute('data-priority');
+            
+            // Load based on priority
+            if (priority === 'high') {
+              topImpactWidgetOptimizer.loadWidget(widget);
+            } else if (priority === 'medium') {
+              setTimeout(() => topImpactWidgetOptimizer.loadWidget(widget), 500);
+            } else {
+              if (window.requestIdleCallback) {
+                requestIdleCallback(() => topImpactWidgetOptimizer.loadWidget(widget));
+              } else {
+                setTimeout(() => topImpactWidgetOptimizer.loadWidget(widget), 1000);
+              }
+            }
+            
+            observer.unobserve(widget);
+          }
+        });
+      }, { rootMargin: '50px' });
+
+      // Observe all lazy widgets
+      document.querySelectorAll('[data-optimized="true"]').forEach(widget => {
+        observer.observe(widget);
+      });
+    }
+  },
+
+  // Load individual widget
+  loadWidget: (widget) => {
+    if (widget.tagName === 'IFRAME' && widget.dataset.src) {
+      widget.src = widget.dataset.src;
+    }
+    
+    // Trigger custom load event
+    widget.dispatchEvent(new CustomEvent('widgetLoad', { 
+      detail: { 
+        type: widget.getAttribute('data-widget-type'),
+        priority: widget.getAttribute('data-priority')
+      }
+    }));
+  },
+
+  // Detect widget type based on attributes
+  detectWidgetType: (widget) => {
+    const src = widget.src || widget.getAttribute('src') || '';
+    const className = widget.className || '';
+    const id = widget.id || '';
+    
+    if (src.includes('ads') || className.includes('ad') || id.includes('ad')) return 'ads';
+    if (src.includes('social') || className.includes('social') || id.includes('social')) return 'social';
+    if (src.includes('chat') || className.includes('chat') || id.includes('chat')) return 'chat';
+    if (src.includes('analytics') || src.includes('tracking')) return 'analytics';
+    return 'widget';
+  },
+
+  // Monitor widget performance
+  monitorWidgetPerformance: () => {
+    if ('PerformanceObserver' in window) {
+      const observer = new PerformanceObserver((list) => {
+        list.getEntries().forEach(entry => {
+          if (entry.name.includes('widget') || entry.name.includes('iframe')) {
+            console.log('Widget Performance:', {
+              name: entry.name,
+              duration: entry.duration,
+              startTime: entry.startTime
+            });
+          }
+        });
+      });
+      
+      observer.observe({ entryTypes: ['resource', 'navigation'] });
+    }
+  },
+
+  // Get widget performance report
+  getPerformanceReport: () => {
+    const widgets = document.querySelectorAll('[data-optimized="true"]');
+    const report = {
+      totalWidgets: widgets.length,
+      loadedWidgets: document.querySelectorAll('[data-loading="false"]').length,
+      widgetTypes: {}
+    };
+    
+    widgets.forEach(widget => {
+      const type = widget.getAttribute('data-widget-type');
+      report.widgetTypes[type] = (report.widgetTypes[type] || 0) + 1;
+    });
+    
+    return report;
+  }
+};
+
+// Initialize on DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', topImpactWidgetOptimizer.init);
+} else {
+  topImpactWidgetOptimizer.init();
+}</code></pre>
+                                </div>
                             </div>
                         </div>
                     </div>
