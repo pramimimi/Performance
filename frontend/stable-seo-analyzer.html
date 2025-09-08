@@ -248,10 +248,10 @@
                         <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('lcp')">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-blue-200 font-semibold">LCP</span>
-                                <span class="text-white font-bold">${performance.lcp}ms</span>
+                                <span class="text-white font-bold">${formatMetricValue(performance.lcp, 'lcp')}</span>
                             </div>
                             <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
-                                <div class="progress-bar" style="width: ${Math.min(100, (4000 - performance.lcp) / 40)}%"></div>
+                                <div class="progress-bar" style="width: ${Math.min(100, (4.0 - performance.lcp / 1000) / 4.0 * 100)}%"></div>
                             </div>
                             <div class="text-sm ${getVitalStatus(performance.coreWebVitals.lcp).color}">
                                 ${getVitalStatus(performance.coreWebVitals.lcp).text}
@@ -263,7 +263,7 @@
                         <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('cls')">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-blue-200 font-semibold">CLS</span>
-                                <span class="text-white font-bold">${performance.cls}</span>
+                                <span class="text-white font-bold">${formatMetricValue(performance.cls, 'cls')}</span>
                             </div>
                             <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
                                 <div class="progress-bar" style="width: ${Math.min(100, (0.25 - performance.cls) / 0.25 * 100)}%"></div>
@@ -278,10 +278,10 @@
                         <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('fcp')">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-blue-200 font-semibold">FCP</span>
-                                <span class="text-white font-bold">${performance.fcp}ms</span>
+                                <span class="text-white font-bold">${formatMetricValue(performance.fcp, 'fcp')}</span>
                             </div>
                             <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
-                                <div class="progress-bar" style="width: ${Math.min(100, (3000 - performance.fcp) / 30)}%"></div>
+                                <div class="progress-bar" style="width: ${Math.min(100, (3.0 - performance.fcp / 1000) / 3.0 * 100)}%"></div>
                             </div>
                             <div class="text-sm ${getVitalStatus(performance.coreWebVitals.fcp).color}">
                                 ${getVitalStatus(performance.coreWebVitals.fcp).text}
@@ -293,7 +293,7 @@
                         <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('fid')">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-blue-200 font-semibold">FID</span>
-                                <span class="text-white font-bold">${performance.fid}ms</span>
+                                <span class="text-white font-bold">${formatMetricValue(performance.fid, 'fid')}</span>
                             </div>
                             <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
                                 <div class="progress-bar" style="width: ${Math.min(100, (300 - performance.fid) / 3)}%"></div>
@@ -308,7 +308,7 @@
                         <div class="bg-white/5 p-6 rounded-xl cursor-pointer hover:bg-white/10 transition-all duration-300" onclick="showMetricReport('inp')">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-blue-200 font-semibold">INP</span>
-                                <span class="text-white font-bold">${performance.inp}ms</span>
+                                <span class="text-white font-bold">${formatMetricValue(performance.inp, 'inp')}</span>
                             </div>
                         <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
                                 <div class="progress-bar" style="width: ${Math.min(100, (500 - performance.inp) / 5)}%"></div>
@@ -397,7 +397,6 @@
                                         </div>
                                         ${opportunity.code ? `
                                             <div class="code-block p-4 rounded-lg">
-                                                <div class="text-green-200 font-semibold mb-2">📝 Code Example:</div>
                                                 <pre class="text-green-100 text-sm overflow-x-auto"><code>${opportunity.code}</code></pre>
                                             </div>
                                         ` : ''}
@@ -415,7 +414,7 @@
                     <h3 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
                         🔍 Diagnostics
                     </h3>
-                            <div class="space-y-4">
+                    <div class="space-y-4">
                         ${performance.diagnostics.map((diagnostic, index) => `
                             <div class="bg-white/5 p-6 rounded-xl border border-blue-500/20">
                                 <div class="flex items-start justify-between">
@@ -435,14 +434,8 @@
                                             <div class="text-green-200 font-semibold mb-1">🔧 Fix:</div>
                                             <div class="text-green-100">${diagnostic.fix}</div>
                                         </div>
-                                        ${diagnostic.code ? `
-                                            <div class="code-block p-4 rounded-lg">
-                                                <div class="text-green-200 font-semibold mb-2">📝 Code Example:</div>
-                                                <pre class="text-green-100 text-sm overflow-x-auto"><code>${diagnostic.code}</code></pre>
-                                            </div>
-                                        ` : ''}
-                            </div>
-                        </div>
+                                    </div>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
@@ -962,7 +955,7 @@
             flex: 1;
             font-family: monospace;
             font-size: 12px;
-            color: #e5e7eb;
+            color: #ffffff;
             word-break: break-all;
         }
         
@@ -998,8 +991,15 @@
         
         .script-domain, .tracking-domain {
             font-size: 12px;
-            color: #e5e7eb;
+            color: #374151;
             margin-bottom: 3px;
+        }
+        
+        .script-url {
+            font-family: monospace;
+            font-size: 12px;
+            color: #ffffff;
+            word-break: break-all;
         }
         
         .tracking-impact {
@@ -1163,14 +1163,46 @@
         <p><strong>Generated:</strong> ${timestamp}</p>
     </div>
 
-    ${Object.entries(aiSuggestions).map(([metricKey, metricData]) => `
+    <div class="summary-section" style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 30px; border-left: 5px solid #ef4444;">
+        <h2 style="color: #dc2626; margin-top: 0;">📊 Critical Performance Issues Summary</h2>
+        <p style="color: #374151; margin-bottom: 15px;">This report focuses on metrics that need immediate attention (Needs Improvement or Poor status).</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            ${Object.entries(aiSuggestions)
+                .filter(([metricKey, metricData]) => 
+                    metricData.status === 'needs-improvement' || metricData.status === 'poor'
+                )
+                .map(([metricKey, metricData]) => `
+                    <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid ${metricData.status === 'poor' ? '#dc2626' : '#f59e0b'};">
+                        <h3 style="margin: 0 0 8px 0; color: #1f2937; font-size: 16px;">${metricData.metric}</h3>
+                        <p style="margin: 0 0 5px 0; color: #6b7280; font-size: 14px;">Status: <strong style="color: ${metricData.status === 'poor' ? '#dc2626' : '#f59e0b'};">${metricData.status.toUpperCase()}</strong></p>
+                        <p style="margin: 0; color: #374151; font-size: 13px;">Impact: ${metricData.impact}</p>
+                    </div>
+                `).join('')}
+        </div>
+        
+        ${Object.entries(aiSuggestions).filter(([metricKey, metricData]) => 
+            metricData.status === 'needs-improvement' || metricData.status === 'poor'
+        ).length === 0 ? `
+            <div style="text-align: center; padding: 20px; color: #059669; background: #ecfdf5; border-radius: 6px;">
+                <h3 style="margin: 0 0 10px 0;">🎉 Excellent Performance!</h3>
+                <p style="margin: 0;">All metrics are performing well. No critical issues found.</p>
+            </div>
+        ` : ''}
+    </div>
+
+    ${Object.entries(aiSuggestions)
+        .filter(([metricKey, metricData]) => 
+            metricData.status === 'needs-improvement' || metricData.status === 'poor'
+        )
+        .map(([metricKey, metricData]) => `
         <div class="metric-section">
             <div class="metric-header">
                 <h2 class="metric-title">${metricData.metric}</h2>
                 <span class="metric-status status-${metricData.status}">${(metricData.status || 'unknown').toUpperCase()}</span>
                 <div style="margin-top: 10px;">
-                    <strong>Current Value:</strong> ${metricData.currentValue}${metricKey === 'cls' ? '' : 'ms'} | 
-                    <strong>Target Value:</strong> ${metricData.targetValue}${metricKey === 'cls' ? '' : 'ms'}
+                    <strong>Current Value:</strong> ${formatMetricValue(metricData.currentValue, metricKey)} | 
+                    <strong>Target Value:</strong> ${formatMetricValue(metricData.targetValue, metricKey)}
                 </div>
                 <div style="margin-top: 5px; color: #666;">
                     ${metricData.description}
@@ -1585,11 +1617,11 @@
                             <h3 class="text-xl font-bold text-white mb-4">📈 Current Status</h3>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div class="text-center">
-                                    <div class="text-2xl font-bold text-blue-400">${report.currentValue}</div>
+                                    <div class="text-2xl font-bold text-blue-400">${formatMetricValue(report.currentValue, report.metric)}</div>
                                     <div class="text-blue-200">Current Value</div>
                                 </div>
                                 <div class="text-center">
-                                    <div class="text-2xl font-bold text-green-400">${report.targetValue}</div>
+                                    <div class="text-2xl font-bold text-green-400">${formatMetricValue(report.targetValue, report.metric)}</div>
                                     <div class="text-green-200">Target Value</div>
                 </div>
                                 <div class="text-center">
@@ -1709,6 +1741,21 @@
                 case 'poor': return 'text-red-400';
                 default: return 'text-gray-400';
             }
+        }
+
+        // Format metric values for display (exact values like PageSpeed Insights)
+        function formatMetricValue(value, metric) {
+            if (metric === 'cls') {
+                // Show CLS with up to 3 decimal places, but remove trailing zeros
+                return parseFloat(value.toFixed(3)).toString();
+            } else if (metric === 'lcp' || metric === 'fcp') {
+                // Show LCP/FCP in seconds with 2 decimal places for precision
+                return (value / 1000).toFixed(2) + ' s';
+            } else if (metric === 'fid' || metric === 'inp') {
+                // Show FID/INP in milliseconds with 1 decimal place for precision
+                return value.toFixed(1) + ' ms';
+            }
+            return value;
         }
     </script>
 </body>

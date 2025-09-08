@@ -395,11 +395,12 @@ async function getEnhancedFallbackPerformanceAnalysis(html, url) {
       explanation: 'Alt text improves accessibility and helps with SEO.',
       fix: 'Add descriptive alt text to all images',
       impact: 'Low - Accessibility and SEO improvement',
-      code: `<img src="hero-image.jpg" alt="Professional developer working on laptop with coffee">
+      code: `<!-- Add descriptive alt text to all images -->
+<img src="image.jpg" alt="Descriptive text about the image">
 <!-- For decorative images, use empty alt -->
-<img src="decorative-border.png" alt="">
+<img src="decorative.png" alt="">
 <!-- For complex images, provide detailed descriptions -->
-<img src="chart.png" alt="Sales growth chart showing 25% increase from Q1 to Q2 2024">`
+<img src="chart.png" alt="Data visualization showing performance metrics">`
     });
   }
   
@@ -1252,7 +1253,13 @@ function generateComprehensiveDiagnostics(html, targetUrl) {
         explanation: 'H1 tags help structure your content and improve SEO.',
         fix: 'Add an H1 tag to your main content',
         impact: 'Medium - SEO and content structure',
-        code: `<h1>Complete Web Performance Analysis Report</h1>`
+        code: `<!-- Add descriptive H1 heading for main content -->
+<h1>Your Main Page Title Here</h1>
+<!-- Example: -->
+<h1>Welcome to Our Website - Your Trusted Partner</h1>
+<!-- Or for specific pages: -->
+<h1>About Us - Learn More About Our Company</h1>
+<h1>Contact - Get in Touch With Our Team</h1>`
       });
     }
 
@@ -1317,11 +1324,12 @@ function generateComprehensiveDiagnostics(html, targetUrl) {
         explanation: 'Alt text improves accessibility and helps with SEO.',
         fix: 'Add descriptive alt text to all images',
         impact: 'Medium - Accessibility and SEO',
-        code: `<img src="hero-image.jpg" alt="Professional developer working on laptop with coffee">
+        code: `<!-- Add descriptive alt text to all images -->
+<img src="image.jpg" alt="Descriptive text about the image">
 <!-- For decorative images, use empty alt -->
-<img src="decorative-border.png" alt="">
+<img src="decorative.png" alt="">
 <!-- For complex images, provide detailed descriptions -->
-<img src="chart.png" alt="Sales growth chart showing 25% increase from Q1 to Q2 2024">`
+<img src="chart.png" alt="Data visualization showing performance metrics">`
       });
     }
 
@@ -3153,7 +3161,7 @@ async function getPageSpeedInsights(targetUrl, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       // Build API URL with optional API key
-      let apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&category=performance&category=accessibility&category=best-practices&category=seo&strategy=mobile`;
+      let apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&category=performance&category=accessibility&category=best-practices&category=seo&strategy=desktop&locale=en`;
       
       if (PAGESPEED_API_KEY) {
         apiUrl += `&key=${encodeURIComponent(PAGESPEED_API_KEY)}`;
@@ -3375,7 +3383,7 @@ app.post('/analyze', async (req, res) => {
           const lh = pageSpeedData.lighthouseResult;
           const audits = lh.audits;
           
-          // Extract exact PageSpeed Insights metrics
+          // Extract exact PageSpeed Insights metrics (no calculations)
           const lcp = audits['largest-contentful-paint']?.numericValue || 0;
           const cls = audits['cumulative-layout-shift']?.numericValue || 0;
           const fcp = audits['first-contentful-paint']?.numericValue || 0;
@@ -3390,7 +3398,7 @@ app.post('/analyze', async (req, res) => {
             lcp, cls, fcp, tti, tbt, speedIndex, audits
           });
           
-          // Extract scores from PageSpeed API response and format exactly like fallback
+          // Extract exact scores from PageSpeed API response (no calculations)
           const performanceScore = Math.round((lh.categories?.performance?.score || 0) * 100);
           const accessibilityScore = Math.round((lh.categories?.accessibility?.score || 0) * 100);
           const bestPracticesScore = Math.round((lh.categories?.['best-practices']?.score || 0) * 100);
@@ -3428,14 +3436,14 @@ app.post('/analyze', async (req, res) => {
           performanceData = {
               source: 'pagespeed-api',
             overallScore: performanceScore,
-            lcp: Math.round(lcp),
-              cls: Math.round(cls * 1000) / 1000,
-            fcp: Math.round(fcp),
-            tti: Math.round(tti),
-            tbt: Math.round(tbt),
-            speedIndex: Math.round(speedIndex),
-            fid: Math.round(fid),
-              inp: Math.round(inp),
+            lcp: lcp,
+            cls: cls,
+            fcp: fcp,
+            tti: tti,
+            tbt: tbt,
+            speedIndex: speedIndex,
+            fid: fid,
+            inp: inp,
             issues: performanceIssues,
             coreWebVitals: {
               lcp: lcp <= 2500 ? 'good' : lcp <= 4000 ? 'needs-improvement' : 'poor',
@@ -3491,13 +3499,13 @@ app.post('/analyze', async (req, res) => {
         const lh = pageSpeedData.lighthouseResult;
         const audits = lh.audits;
         
-        // Extract exact PageSpeed Insights metrics
-        const lcp = audits['largest-contentful-paint']?.numericValue || 0;
-        const cls = audits['cumulative-layout-shift']?.numericValue || 0;
-        const fcp = audits['first-contentful-paint']?.numericValue || 0;
-        const tti = audits['interactive']?.numericValue || 0;
-        const tbt = audits['total-blocking-time']?.numericValue || 0;
-        const speedIndex = audits['speed-index']?.numericValue || 0;
+          // Extract exact PageSpeed Insights metrics (no calculations)
+          const lcp = audits['largest-contentful-paint']?.numericValue || 0;
+          const cls = audits['cumulative-layout-shift']?.numericValue || 0;
+          const fcp = audits['first-contentful-paint']?.numericValue || 0;
+          const tti = audits['interactive']?.numericValue || 0;
+          const tbt = audits['total-blocking-time']?.numericValue || 0;
+          const speedIndex = audits['speed-index']?.numericValue || 0;
           const inp = audits['max-potential-fid']?.numericValue || 0;
         
         // Generate performance issues based on actual metrics
@@ -3543,14 +3551,14 @@ app.post('/analyze', async (req, res) => {
         performanceData = {
             source: 'pagespeed-api',
           overallScore: performanceScore,
-          lcp: Math.round(lcp),
-            cls: Math.round(cls * 1000) / 1000,
-          fcp: Math.round(fcp),
-          tti: Math.round(tti),
-          tbt: Math.round(tbt),
-          speedIndex: Math.round(speedIndex),
-          fid: Math.round(fid),
-            inp: Math.round(inp),
+          lcp: lcp,
+          cls: cls,
+          fcp: fcp,
+          tti: tti,
+          tbt: tbt,
+          speedIndex: speedIndex,
+          fid: fid,
+          inp: inp,
           issues: performanceIssues,
           coreWebVitals: {
             lcp: lcp <= 2500 ? 'good' : lcp <= 4000 ? 'needs-improvement' : 'poor',
