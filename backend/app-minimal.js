@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { exec } = require('child_process');
@@ -394,7 +395,12 @@ async function getEnhancedFallbackPerformanceAnalysis(html, url) {
       explanation: 'Alt text improves accessibility and helps with SEO.',
       fix: 'Add descriptive alt text to all images',
       impact: 'Low - Accessibility and SEO improvement',
-      code: `<img src="image.jpg" alt="Descriptive text about the image">`
+      code: `<!-- Add descriptive alt text to all images -->
+<img src="image.jpg" alt="Descriptive text about the image">
+<!-- For decorative images, use empty alt -->
+<img src="decorative.png" alt="">
+<!-- For complex images, provide detailed descriptions -->
+<img src="chart.png" alt="Data visualization showing performance metrics">`
     });
   }
   
@@ -1204,6 +1210,153 @@ analyticsWorker.postMessage({ type: 'track', data: eventData });
   return recommendations;
 }
 
+// Generate comprehensive diagnostics for website analysis
+function generateComprehensiveDiagnostics(html, targetUrl) {
+  const diagnostics = [];
+  
+  try {
+    // Check for missing meta description
+    const metaDescription = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
+    if (!metaDescription) {
+      diagnostics.push({
+        key: 'missing_meta_description',
+        severity: 'warning',
+        message: 'Missing meta description',
+        explanation: 'Meta descriptions help search engines understand your page content and appear in search results.',
+        fix: 'Add a meta description tag to your HTML head section',
+        impact: 'Medium - SEO and search result appearance',
+        code: `<meta name="description" content="Learn about web performance optimization, SEO best practices, and Core Web Vitals. Get actionable insights to improve your website speed and user experience.">`
+      });
+    }
+
+    // Check for missing title tag
+    const titleTag = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+    if (!titleTag || titleTag[1].trim().length === 0) {
+      diagnostics.push({
+        key: 'missing_title',
+        severity: 'critical',
+        message: 'Missing or empty title tag',
+        explanation: 'Title tags are crucial for SEO and appear in browser tabs and search results.',
+        fix: 'Add a descriptive title tag to your HTML head section',
+        impact: 'High - Essential for SEO and user experience',
+        code: `<title>Web Performance Analyzer - SEO & Speed Optimization Tool</title>`
+      });
+    }
+
+    // Check for missing H1 tag
+    const h1Tag = html.match(/<h1[^>]*>([^<]*)<\/h1>/i);
+    if (!h1Tag) {
+      diagnostics.push({
+        key: 'missing_h1',
+        severity: 'warning',
+        message: 'Missing H1 heading',
+        explanation: 'H1 tags help structure your content and improve SEO.',
+        fix: 'Add an H1 tag to your main content',
+        impact: 'Medium - SEO and content structure',
+        code: `<!-- Add descriptive H1 heading for main content -->
+<h1>Your Main Page Title Here</h1>
+<!-- Example: -->
+<h1>Welcome to Our Website - Your Trusted Partner</h1>
+<!-- Or for specific pages: -->
+<h1>About Us - Learn More About Our Company</h1>
+<h1>Contact - Get in Touch With Our Team</h1>`
+      });
+    }
+
+    // Check for missing favicon
+    const favicon = html.match(/<link[^>]*rel=["'](?:shortcut )?icon["'][^>]*>/i);
+    if (!favicon) {
+      diagnostics.push({
+        key: 'missing_favicon',
+        severity: 'info',
+        message: 'Missing favicon',
+        explanation: 'Favicons improve brand recognition and user experience.',
+        fix: 'Add a favicon link to your HTML head section',
+        impact: 'Low - Brand recognition and user experience',
+        code: `<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">`
+      });
+    }
+
+    // Check for missing Open Graph tags
+    const ogTitle = html.match(/<meta[^>]*property=["']og:title["'][^>]*>/i);
+    if (!ogTitle) {
+      diagnostics.push({
+        key: 'missing_og_title',
+        severity: 'info',
+        message: 'Missing Open Graph title',
+        explanation: 'Open Graph tags improve how your page appears when shared on social media.',
+        fix: 'Add Open Graph meta tags to your HTML head section',
+        impact: 'Low - Social media sharing appearance',
+        code: `<meta property="og:title" content="Web Performance Analyzer - SEO & Speed Optimization">
+<meta property="og:description" content="Analyze your website performance, Core Web Vitals, and SEO metrics with our comprehensive tool.">
+<meta property="og:image" content="https://yoursite.com/og-image.jpg">
+<meta property="og:url" content="${targetUrl}">`
+      });
+    }
+
+    // Check for missing canonical URL
+    const canonical = html.match(/<link[^>]*rel=["']canonical["'][^>]*>/i);
+    if (!canonical) {
+      diagnostics.push({
+        key: 'missing_canonical',
+        severity: 'info',
+        message: 'Missing canonical URL',
+        explanation: 'Canonical URLs help prevent duplicate content issues and improve SEO.',
+        fix: 'Add a canonical link tag to your HTML head section',
+        impact: 'Low - SEO and duplicate content prevention',
+        code: `<link rel="canonical" href="${targetUrl}">
+<!-- Also add hreflang for international sites -->
+<link rel="alternate" hreflang="en" href="${targetUrl}">
+<link rel="alternate" hreflang="x-default" href="${targetUrl}">`
+      });
+    }
+
+    // Check for images without alt text
+    const images = html.match(/<img[^>]*>/gi) || [];
+    const imagesWithoutAlt = images.filter(img => !img.match(/alt=["'][^"']*["']/i)).length;
+    if (imagesWithoutAlt > 0) {
+      diagnostics.push({
+        key: 'images_missing_alt',
+        severity: 'warning',
+        message: `${imagesWithoutAlt} images missing alt text`,
+        explanation: 'Alt text improves accessibility and helps with SEO.',
+        fix: 'Add descriptive alt text to all images',
+        impact: 'Medium - Accessibility and SEO',
+        code: `<!-- Add descriptive alt text to all images -->
+<img src="image.jpg" alt="Descriptive text about the image">
+<!-- For decorative images, use empty alt -->
+<img src="decorative.png" alt="">
+<!-- For complex images, provide detailed descriptions -->
+<img src="chart.png" alt="Data visualization showing performance metrics">`
+      });
+    }
+
+    // Check for missing viewport meta tag
+    const viewport = html.match(/<meta[^>]*name=["']viewport["'][^>]*>/i);
+    if (!viewport) {
+      diagnostics.push({
+        key: 'missing_viewport',
+        severity: 'critical',
+        message: 'Missing viewport meta tag',
+        explanation: 'Viewport meta tag is essential for responsive design and mobile optimization.',
+        fix: 'Add viewport meta tag to your HTML head section',
+        impact: 'High - Mobile responsiveness and SEO',
+        code: `<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<!-- Additional mobile optimization -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">`
+      });
+    }
+
+  } catch (error) {
+    console.error('Error generating diagnostics:', error);
+  }
+
+  return diagnostics;
+}
+
 // Enhanced custom code and third-party analysis
 function analyzeCustomCodeAndThirdParty(html, targetUrl) {
   try {
@@ -1264,7 +1417,68 @@ function analyzeCustomCodeAndThirdParty(html, targetUrl) {
             size: match.length,
             impact: 'Medium - Publisher custom widget may cause layout shifts',
             performanceScore: 2,
-            category: 'layout-shift'
+            category: 'layout-shift',
+            customCodeSolution: `// Top Impact Widget Optimization for: ${match.substring(0, 30)}...
+const widgetOptimizer_${Date.now()} = {
+  // Widget-specific optimization
+  optimizeWidget: () => {
+    const widget = document.querySelector('${match.includes('class=') ? match.match(/class="([^"]*)"/)?.[1] || '[class*="widget"]' : '[class*="widget"]'}');
+    if (widget) {
+      // Reserve space to prevent layout shift
+      widget.style.minHeight = '100px';
+      widget.style.width = '100%';
+      
+      // Add loading state
+      widget.setAttribute('data-widget-loading', 'true');
+      
+      // Optimize child elements
+      const images = widget.querySelectorAll('img');
+      images.forEach(img => {
+        if (!img.width || !img.height) {
+          img.style.width = '100%';
+          img.style.height = 'auto';
+        }
+        img.loading = 'lazy';
+      });
+      
+      // Defer non-critical scripts
+      const scripts = widget.querySelectorAll('script');
+      scripts.forEach(script => {
+        if (!script.async && !script.defer) {
+          script.defer = true;
+        }
+      });
+      
+      // Mark as optimized
+      widget.setAttribute('data-optimized', 'true');
+      widget.addEventListener('load', () => {
+        widget.setAttribute('data-widget-loading', 'false');
+      });
+    }
+  },
+  
+  // Performance monitoring
+  monitorPerformance: () => {
+    if ('PerformanceObserver' in window) {
+      const observer = new PerformanceObserver((list) => {
+        list.getEntries().forEach(entry => {
+          if (entry.name.includes('widget')) {
+            console.log('Widget Performance:', entry.duration + 'ms');
+          }
+        });
+      });
+      observer.observe({ entryTypes: ['resource'] });
+    }
+  },
+  
+  init: () => {
+    widgetOptimizer_${Date.now()}.optimizeWidget();
+    widgetOptimizer_${Date.now()}.monitorPerformance();
+  }
+};
+
+// Initialize widget optimization
+widgetOptimizer_${Date.now()}.init();`
           };
           customCodeAnalysis.publisherCode.customWidgets.push(widget);
           publisherScore += 2;
@@ -1652,12 +1866,7 @@ const fontOptimizer = {
     
     // Add font-display swap to existing font faces
     const style = document.createElement('style');
-    style.textContent = \`
-      @font-face {
-        font-family: 'CustomFont';
-        font-display: swap;
-      }
-    \`;
+    style.textContent = '@font-face { font-family: \\'CustomFont\\'; font-display: swap; }';
     document.head.appendChild(style);
   }
 };`
@@ -1667,29 +1876,197 @@ const fontOptimizer = {
                 rootCause: 'External widgets (ads, social media embeds, chat widgets) load at unpredictable times and sizes.',
                 specificSolution: 'Reserve space for widgets and use lazy loading to prevent layout shifts.',
                 recommendation: 'Always specify dimensions for third-party content and load it below the fold when possible.',
-                customCodeSolution: `// Publisher custom code for third-party widget optimization
-const widgetOptimizer = {
+                customCodeSolution: `// Enhanced Top Impact Widgets Optimization Solution
+const topImpactWidgetOptimizer = {
+  // Configuration for different widget types
+  widgetConfig: {
+    'ads': { height: '250px', priority: 'low', lazy: true },
+    'social': { height: '400px', priority: 'medium', lazy: true },
+    'chat': { height: '60px', priority: 'high', lazy: false },
+    'analytics': { height: '1px', priority: 'low', lazy: true },
+    'widget': { height: '300px', priority: 'medium', lazy: true }
+  },
+
+  // Initialize widget optimization
+  init: () => {
+    topImpactWidgetOptimizer.optimizeThirdPartyWidgets();
+    topImpactWidgetOptimizer.optimizePublisherWidgets();
+    topImpactWidgetOptimizer.setupIntersectionObserver();
+    topImpactWidgetOptimizer.monitorWidgetPerformance();
+  },
+
+  // Optimize third-party widgets (ads, social media, etc.)
   optimizeThirdPartyWidgets: () => {
-    const widgets = document.querySelectorAll('iframe[src*="ads"], iframe[src*="social"], iframe[src*="widget"]');
-    widgets.forEach(widget => {
-      // Reserve space before loading
-      widget.style.width = '100%';
-      widget.style.height = '250px'; // Standard ad height
-      widget.style.border = 'none';
-      
-      // Load widget after page is stable
-      if (window.requestIdleCallback) {
-        requestIdleCallback(() => {
-          widget.src = widget.dataset.src;
-        });
-      } else {
-        setTimeout(() => {
-          widget.src = widget.dataset.src;
-        }, 1000);
-      }
+    const thirdPartySelectors = [
+      'iframe[src*="ads"]',
+      'iframe[src*="social"]', 
+      'iframe[src*="widget"]',
+      'iframe[src*="embed"]',
+      'script[src*="analytics"]',
+      'script[src*="tracking"]',
+      'div[class*="widget"]',
+      'div[id*="widget"]'
+    ];
+
+    thirdPartySelectors.forEach(selector => {
+      const widgets = document.querySelectorAll(selector);
+      widgets.forEach(widget => {
+        const widgetType = topImpactWidgetOptimizer.detectWidgetType(widget);
+        const config = topImpactWidgetOptimizer.widgetConfig[widgetType] || topImpactWidgetOptimizer.widgetConfig['widget'];
+        
+        // Reserve space to prevent layout shift
+        if (widget.tagName === 'IFRAME') {
+          widget.style.width = '100%';
+          widget.style.height = config.height;
+          widget.style.border = 'none';
+          widget.style.background = '#f5f5f5';
+          
+          // Lazy load if configured
+          if (config.lazy) {
+            widget.dataset.src = widget.src;
+            widget.src = 'data:text/html,<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">Loading...</div>';
+          }
+        }
+        
+        // Add performance attributes
+        widget.setAttribute('data-widget-type', widgetType);
+        widget.setAttribute('data-priority', config.priority);
+        widget.setAttribute('data-optimized', 'true');
+      });
     });
+  },
+
+  // Optimize publisher custom widgets
+  optimizePublisherWidgets: () => {
+    const publisherWidgets = document.querySelectorAll('[class*="widget"], [id*="widget"], [data-widget]');
+    publisherWidgets.forEach(widget => {
+      // Add container dimensions
+      if (!widget.style.width && !widget.style.height) {
+        widget.style.minHeight = '100px';
+        widget.style.width = '100%';
+      }
+      
+      // Optimize custom scripts within widgets
+      const scripts = widget.querySelectorAll('script');
+      scripts.forEach(script => {
+        if (!script.async && !script.defer) {
+          script.defer = true;
+        }
+      });
+      
+      // Add loading state
+      widget.setAttribute('data-loading', 'true');
+      widget.addEventListener('load', () => {
+        widget.setAttribute('data-loading', 'false');
+      });
+    });
+  },
+
+  // Setup intersection observer for lazy loading
+  setupIntersectionObserver: () => {
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const widget = entry.target;
+            const priority = widget.getAttribute('data-priority');
+            
+            // Load based on priority
+            if (priority === 'high') {
+              topImpactWidgetOptimizer.loadWidget(widget);
+            } else if (priority === 'medium') {
+              setTimeout(() => topImpactWidgetOptimizer.loadWidget(widget), 500);
+            } else {
+              if (window.requestIdleCallback) {
+                requestIdleCallback(() => topImpactWidgetOptimizer.loadWidget(widget));
+              } else {
+                setTimeout(() => topImpactWidgetOptimizer.loadWidget(widget), 1000);
+              }
+            }
+            
+            observer.unobserve(widget);
+          }
+        });
+      }, { rootMargin: '50px' });
+
+      // Observe all lazy widgets
+      document.querySelectorAll('[data-optimized="true"]').forEach(widget => {
+        observer.observe(widget);
+      });
+    }
+  },
+
+  // Load individual widget
+  loadWidget: (widget) => {
+    if (widget.tagName === 'IFRAME' && widget.dataset.src) {
+      widget.src = widget.dataset.src;
+    }
+    
+    // Trigger custom load event
+    widget.dispatchEvent(new CustomEvent('widgetLoad', { 
+      detail: { 
+        type: widget.getAttribute('data-widget-type'),
+        priority: widget.getAttribute('data-priority')
+      }
+    }));
+  },
+
+  // Detect widget type based on attributes
+  detectWidgetType: (widget) => {
+    const src = widget.src || widget.getAttribute('src') || '';
+    const className = widget.className || '';
+    const id = widget.id || '';
+    
+    if (src.includes('ads') || className.includes('ad') || id.includes('ad')) return 'ads';
+    if (src.includes('social') || className.includes('social') || id.includes('social')) return 'social';
+    if (src.includes('chat') || className.includes('chat') || id.includes('chat')) return 'chat';
+    if (src.includes('analytics') || src.includes('tracking')) return 'analytics';
+    return 'widget';
+  },
+
+  // Monitor widget performance
+  monitorWidgetPerformance: () => {
+    if ('PerformanceObserver' in window) {
+      const observer = new PerformanceObserver((list) => {
+        list.getEntries().forEach(entry => {
+          if (entry.name.includes('widget') || entry.name.includes('iframe')) {
+            console.log('Widget Performance:', {
+              name: entry.name,
+              duration: entry.duration,
+              startTime: entry.startTime
+            });
+          }
+        });
+      });
+      
+      observer.observe({ entryTypes: ['resource', 'navigation'] });
+    }
+  },
+
+  // Get widget performance report
+  getPerformanceReport: () => {
+    const widgets = document.querySelectorAll('[data-optimized="true"]');
+    const report = {
+      totalWidgets: widgets.length,
+      loadedWidgets: document.querySelectorAll('[data-loading="false"]').length,
+      widgetTypes: {}
+    };
+    
+    widgets.forEach(widget => {
+      const type = widget.getAttribute('data-widget-type');
+      report.widgetTypes[type] = (report.widgetTypes[type] || 0) + 1;
+    });
+    
+    return report;
   }
-};`
+};
+
+// Initialize on DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', topImpactWidgetOptimizer.init);
+} else {
+  topImpactWidgetOptimizer.init();
+}`
               }
             ]
           }
@@ -3008,7 +3385,7 @@ async function getPageSpeedInsights(targetUrl, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       // Build API URL with optional API key
-      let apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&category=performance&strategy=mobile`;
+      let apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&category=performance&category=accessibility&category=best-practices&category=seo&strategy=desktop&locale=en`;
       
       if (PAGESPEED_API_KEY) {
         apiUrl += `&key=${encodeURIComponent(PAGESPEED_API_KEY)}`;
@@ -3023,6 +3400,8 @@ async function getPageSpeedInsights(targetUrl, retries = 3) {
         }
       });
       
+      console.log(`📡 PageSpeed API Response Status: ${response.status}`);
+      
       if (response.status === 429) {
         const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff
         console.log(`⏳ Rate limited. Waiting ${waitTime}ms before retry...`);
@@ -3033,11 +3412,12 @@ async function getPageSpeedInsights(targetUrl, retries = 3) {
       }
       
     if (!response.ok) {
+        console.log(`❌ PageSpeed API Error: ${response.status} - ${response.statusText}`);
         throw new Error(`PageSpeed API error: ${response.status} - ${response.statusText}`);
     }
     
     const data = await response.json();
-      console.log('✅ PageSpeed API call successful');
+    console.log('✅ PageSpeed API call successful, data received');
     return data;
       
   } catch (error) {
@@ -3217,34 +3597,139 @@ app.post('/analyze', async (req, res) => {
     let performanceData = null;
     let dataSource = 'unknown';
     
-    // Method 1: Try Direct Lighthouse first (most accurate)
-    console.log('🎯 Method 1: Trying Direct Lighthouse for accurate Core Web Vitals...');
-    try {
-      performanceData = await runLighthouseDirect(targetUrl);
-      if (performanceData) {
-        dataSource = 'Direct Lighthouse';
-        console.log('✅ Direct Lighthouse analysis completed successfully - ACCURATE Core Web Vitals data');
-      }
-    } catch (lighthouseError) {
-      console.log('❌ Direct Lighthouse failed:', lighthouseError.message);
+    // Method 1: Try PageSpeed Insights API first (when API key is available)
+    if (PAGESPEED_API_KEY) {
+      console.log('🎯 Method 1: Trying PageSpeed Insights API (with API key)...');
+      try {
+        const pageSpeedData = await getPageSpeedInsights(targetUrl);
+        console.log('📊 PageSpeed API Response:', pageSpeedData ? 'Success' : 'Failed');
+        if (pageSpeedData && pageSpeedData.lighthouseResult) {
+          const lh = pageSpeedData.lighthouseResult;
+          const audits = lh.audits;
+          
+          // Extract exact PageSpeed Insights metrics (no calculations)
+          const lcp = audits['largest-contentful-paint']?.numericValue || 0;
+          const cls = audits['cumulative-layout-shift']?.numericValue || 0;
+          const fcp = audits['first-contentful-paint']?.numericValue || 0;
+          const tti = audits['interactive']?.numericValue || 0;
+          const tbt = audits['total-blocking-time']?.numericValue || 0;
+          const speedIndex = audits['speed-index']?.numericValue || 0;
+          const fid = audits['max-potential-fid']?.numericValue || 0;
+          const inp = audits['max-potential-fid']?.numericValue || 0;
+          
+          // Generate performance issues based on actual metrics
+          const performanceIssues = generatePerformanceIssuesFromLighthouse({
+            lcp, cls, fcp, tti, tbt, speedIndex, audits
+          });
+          
+          // Extract exact scores from PageSpeed API response (no calculations)
+          const performanceScore = Math.round((lh.categories?.performance?.score || 0) * 100);
+          const accessibilityScore = Math.round((lh.categories?.accessibility?.score || 0) * 100);
+          const bestPracticesScore = Math.round((lh.categories?.['best-practices']?.score || 0) * 100);
+          const seoScore = Math.round((lh.categories?.seo?.score || 0) * 100);
+
+          // Generate AI suggestions for PageSpeed API data
+          let aiSuggestions = {};
+          try {
+            aiSuggestions = generateAIPerformanceSuggestions({
+              lcp, cls, fcp, tti, tbt, speedIndex, overallScore: performanceScore
+            }, html, url);
+          } catch (error) {
+            console.error('Error generating AI suggestions for PageSpeed API:', error);
+            aiSuggestions = {};
+          }
+
+          // Generate custom code analysis for PageSpeed API data
+          let customCodeAnalysis = {};
+          try {
+            customCodeAnalysis = analyzeCustomCodeAndThirdParty(html, url);
+          } catch (error) {
+            console.error('Error generating custom code analysis for PageSpeed API:', error);
+            customCodeAnalysis = {};
+          }
+
+          // Generate comprehensive diagnostics for PageSpeed API data
+          let diagnostics = [];
+          try {
+            diagnostics = generateComprehensiveDiagnostics(html, url);
+          } catch (error) {
+            console.error('Error generating diagnostics for PageSpeed API:', error);
+            diagnostics = [];
+          }
+
+          performanceData = {
+              source: 'pagespeed-api',
+            overallScore: performanceScore,
+            lcp: lcp,
+            cls: cls,
+            fcp: fcp,
+            tti: tti,
+            tbt: tbt,
+            speedIndex: speedIndex,
+            fid: fid,
+            inp: inp,
+            issues: performanceIssues,
+            coreWebVitals: {
+              lcp: lcp <= 2500 ? 'good' : lcp <= 4000 ? 'needs-improvement' : 'poor',
+              cls: cls <= 0.1 ? 'good' : cls <= 0.25 ? 'needs-improvement' : 'poor',
+                fcp: fcp <= 1800 ? 'good' : fcp <= 3000 ? 'needs-improvement' : 'poor',
+                fid: fid <= 100 ? 'good' : fid <= 300 ? 'needs-improvement' : 'poor',
+                inp: inp <= 200 ? 'good' : inp <= 500 ? 'needs-improvement' : 'poor'
+              },
+              audits: audits,
+              // Maintain exact same structure as fallback analysis
+              categories: { 
+                performance: performanceScore, 
+                accessibility: accessibilityScore, 
+                bestPractices: bestPracticesScore, 
+                seo: seoScore 
+              },
+              // Add AI suggestions to PageSpeed API response
+              aiSuggestions: aiSuggestions,
+              // Add custom code analysis to PageSpeed API response
+              customCodeAndThirdParty: customCodeAnalysis,
+              // Add comprehensive diagnostics to PageSpeed API response
+              diagnostics: diagnostics
+            };
+            dataSource = 'PageSpeed API';
+          console.log('✅ PageSpeed Insights data retrieved successfully');
+        }
+      } catch (pageSpeedError) {
+          console.log('❌ PageSpeed Insights API failed:', pageSpeedError.message);
+        }
     }
     
-    // Method 2: Try PageSpeed Insights API (if Lighthouse failed)
+    // Method 2: Try Direct Lighthouse (if PageSpeed API failed or no API key)
     if (!performanceData) {
+      console.log('🎯 Method 2: Trying Direct Lighthouse for accurate Core Web Vitals...');
+      try {
+        performanceData = await runLighthouseDirect(targetUrl);
+        if (performanceData) {
+          dataSource = 'Direct Lighthouse';
+          console.log('✅ Direct Lighthouse analysis completed successfully - ACCURATE Core Web Vitals data');
+        }
+      } catch (lighthouseError) {
+        console.log('❌ Direct Lighthouse failed:', lighthouseError.message);
+      }
+    }
+    
+    // Method 3: Try PageSpeed Insights API (if both above failed and no API key was used)
+    if (!performanceData && !PAGESPEED_API_KEY) {
       console.log('🎯 Method 2: Trying PageSpeed Insights API...');
     try {
       const pageSpeedData = await getPageSpeedInsights(targetUrl);
+      console.log('📊 PageSpeed API Response:', pageSpeedData ? 'Success' : 'Failed');
       if (pageSpeedData && pageSpeedData.lighthouseResult) {
         const lh = pageSpeedData.lighthouseResult;
         const audits = lh.audits;
         
-        // Extract exact PageSpeed Insights metrics
-        const lcp = audits['largest-contentful-paint']?.numericValue || 0;
-        const cls = audits['cumulative-layout-shift']?.numericValue || 0;
-        const fcp = audits['first-contentful-paint']?.numericValue || 0;
-        const tti = audits['interactive']?.numericValue || 0;
-        const tbt = audits['total-blocking-time']?.numericValue || 0;
-        const speedIndex = audits['speed-index']?.numericValue || 0;
+          // Extract exact PageSpeed Insights metrics (no calculations)
+          const lcp = audits['largest-contentful-paint']?.numericValue || 0;
+          const cls = audits['cumulative-layout-shift']?.numericValue || 0;
+          const fcp = audits['first-contentful-paint']?.numericValue || 0;
+          const tti = audits['interactive']?.numericValue || 0;
+          const tbt = audits['total-blocking-time']?.numericValue || 0;
+          const speedIndex = audits['speed-index']?.numericValue || 0;
           const inp = audits['max-potential-fid']?.numericValue || 0;
         
         // Generate performance issues based on actual metrics
@@ -3252,25 +3737,74 @@ app.post('/analyze', async (req, res) => {
           lcp, cls, fcp, tti, tbt, speedIndex, audits
         });
         
+        // Extract scores from PageSpeed API response and format exactly like fallback
+        const performanceScore = Math.round((lh.categories?.performance?.score || 0) * 100);
+        const accessibilityScore = Math.round((lh.categories?.accessibility?.score || 0) * 100);
+        const bestPracticesScore = Math.round((lh.categories?.['best-practices']?.score || 0) * 100);
+        const seoScore = Math.round((lh.categories?.seo?.score || 0) * 100);
+
+        // Generate AI suggestions for PageSpeed API data
+        let aiSuggestions = {};
+        try {
+          aiSuggestions = generateAIPerformanceSuggestions({
+            lcp, cls, fcp, tti, tbt, speedIndex, overallScore: performanceScore
+          }, html, url);
+        } catch (error) {
+          console.error('Error generating AI suggestions for PageSpeed API:', error);
+          aiSuggestions = {};
+        }
+
+        // Generate custom code analysis for PageSpeed API data
+        let customCodeAnalysis = {};
+        try {
+          customCodeAnalysis = analyzeCustomCodeAndThirdParty(html, url);
+        } catch (error) {
+          console.error('Error generating custom code analysis for PageSpeed API:', error);
+          customCodeAnalysis = {};
+        }
+
+        // Generate comprehensive diagnostics for PageSpeed API data
+        let diagnostics = [];
+        try {
+          diagnostics = generateComprehensiveDiagnostics(html, url);
+        } catch (error) {
+          console.error('Error generating diagnostics for PageSpeed API:', error);
+          diagnostics = [];
+        }
+
         performanceData = {
             source: 'pagespeed-api',
-          overallScore: Math.round((lh.categories.performance?.score || 0) * 100),
-          lcp: Math.round(lcp),
-            cls: Math.round(cls * 1000) / 1000,
-          fcp: Math.round(fcp),
-          tti: Math.round(tti),
-          tbt: Math.round(tbt),
-          speedIndex: Math.round(speedIndex),
-            inp: Math.round(inp),
+          overallScore: performanceScore,
+          lcp: lcp,
+          cls: cls,
+          fcp: fcp,
+          tti: tti,
+          tbt: tbt,
+          speedIndex: speedIndex,
+          fid: fid,
+          inp: inp,
           issues: performanceIssues,
           coreWebVitals: {
             lcp: lcp <= 2500 ? 'good' : lcp <= 4000 ? 'needs-improvement' : 'poor',
             cls: cls <= 0.1 ? 'good' : cls <= 0.25 ? 'needs-improvement' : 'poor',
               fcp: fcp <= 1800 ? 'good' : fcp <= 3000 ? 'needs-improvement' : 'poor',
+              fid: fid <= 100 ? 'good' : fid <= 300 ? 'needs-improvement' : 'poor',
               inp: inp <= 200 ? 'good' : inp <= 500 ? 'needs-improvement' : 'poor'
             },
             audits: audits,
-            categories: lh.categories
+            // Maintain exact same structure as fallback analysis
+            categories: { 
+              performance: performanceScore, 
+              accessibility: accessibilityScore, 
+              bestPractices: bestPracticesScore, 
+              seo: seoScore 
+            },
+            // Add AI suggestions to PageSpeed API response
+            aiSuggestions: aiSuggestions,
+            // Add custom code analysis to PageSpeed API response
+            customCodeAndThirdParty: customCodeAnalysis,
+            // Add comprehensive diagnostics to PageSpeed API response
+            diagnostics: diagnostics
           };
           dataSource = 'PageSpeed API';
         console.log('✅ PageSpeed Insights data retrieved successfully');

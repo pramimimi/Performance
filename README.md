@@ -15,7 +15,24 @@ A next-generation, enterprise-grade website performance analysis tool with job q
 
 ## 🚀 Quick Start
 
-### Option 1: Enhanced Analyzer (Recommended)
+### 1. Setup API Keys (Optional but Recommended)
+Create a `.env` file in the backend directory:
+```bash
+cd backend
+# Create .env file and add your API keys:
+# OPENAI_API_KEY=your_openai_api_key_here
+# PAGESPEED_API_KEY=your_pagespeed_api_key_here
+```
+
+**Get API Keys:**
+- **OpenAI API Key**: https://platform.openai.com/api-keys
+- **PageSpeed API Key**: https://developers.google.com/speed/docs/insights/v5/get-started
+
+**Note:** Without API keys, the analyzer will use fallback analysis. With API keys, you get more accurate data and AI-powered suggestions.
+
+### 2. Start the Server
+
+#### Option 1: Enhanced Analyzer (Recommended)
 ```bash
 cd backend
 npm install
